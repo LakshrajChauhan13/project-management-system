@@ -25,7 +25,7 @@ import {
   Briefcase 
 } from "lucide-react"
 
-// Updated: Using strings for 'url' as our tab IDs, and un-invoked icon references
+// Updated: Using absolute paths for React Router and un-invoked icon component references
 const data = {
   user: {
     name: "Lakshraj Chauhan",
@@ -47,69 +47,62 @@ const data = {
   navMain: [
     {
       title: "Workspace",
-      url: "workspace",
-      icon: <LayoutDashboard />, 
+      url: "/workspace",
+      icon: LayoutDashboard, 
       isActive: true,
       items: [
-        { title: "Dashboard", url: "dashboard" },
-        { title: "Reports", url: "reports" },
+        { title: "Dashboard", url: "/dashboard" },
+        { title: "Reports", url: "/reports" },
       ],
     },
     {
       title: "Project Execution",
-      url: "execution",
-      icon: <FolderKanban />,
+      url: "/execution",
+      icon: FolderKanban,
       items: [
-        { title: "All Projects", url: "projects" },
-        { title: "Kanban Board", url: "kanban" },
-        { title: "Calendar", url: "calendar" },
+        { title: "All Projects", url: "/projects" },
+        { title: "Kanban Board", url: "/kanban" },
+        { title: "Calendar", url: "/calendar" },
       ],
     },
     {
       title: "AI Tools",
-      url: "ai-tools",
-      icon: <Bot />,
+      url: "/ai-tools",
+      icon: Bot,
       items: [
-        { title: "AI Story Generator", url: "ai-story" },
-        { title: "AI Sprint Planner", url: "ai-planner" },
+        { title: "AI Story Generator", url: "/ai-story" },
+        { title: "AI Sprint Planner", url: "/ai-planner" },
       ],
     },
   ],
   projects: [
     {
       name: "OORLY Analytics",
-      url: "oorly",
-      icon: <Zap />,
+      url: "/projects/oorly",
+      icon: Zap,
     },
     {
       name: "Vaulrizz Chat",
-      url: "vaulrizz",
-      icon: <Users />,
+      url: "/projects/vaulrizz",
+      icon: Users,
     },
     {
       name: "SecondBrain V2",
-      url: "secondbrain",
-      icon: <Settings />,
+      url: "/projects/secondbrain",
+      icon: Settings,
     },
   ],
 }
 
-// 1. We define the properties this component is allowed to accept
-interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-}
-
-// 2. We extract activeTab and setActiveTab from the props
-export function AppSidebar({ activeTab, setActiveTab, ...props }: AppSidebarProps) {
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        {/* 3. We pass the state down to NavMain so it can handle the clicks */}
-        <NavMain items={data.navMain} activeTab={activeTab} setActiveTab={setActiveTab} />
+        {/* NavMain and NavProjects will handle the routing via React Router */}
+        <NavMain items={data.navMain} />
         <NavProjects projects={data.projects} />
       </SidebarContent>
       <SidebarFooter>

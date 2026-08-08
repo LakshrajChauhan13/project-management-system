@@ -17,6 +17,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { MoreHorizontalIcon, FolderIcon, ArrowRightIcon, Trash2Icon } from "lucide-react"
+import { Link } from "react-router-dom" // Added React Router import
 
 export function NavProjects({
   projects,
@@ -24,7 +25,7 @@ export function NavProjects({
   projects: {
     name: string
     url: string
-    icon: React.ReactNode
+    icon: React.ElementType // Updated to accept a component reference
   }[]
 }) {
   const { isMobile } = useSidebar()
@@ -34,8 +35,10 @@ export function NavProjects({
       <SidebarMenu>
         {projects.map((item) => (
           <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton render={<a href={item.url} />}>
-              {item.icon}
+            {/* Replaced <a> with <Link> */}
+            <SidebarMenuButton render={<Link to={item.url} />}>
+              {/* Instantiate the icon component */}
+              {item.icon && <item.icon />}
               <span>{item.name}</span>
             </SidebarMenuButton>
             <DropdownMenu>
@@ -47,8 +50,7 @@ export function NavProjects({
                   />
                 }
               >
-                <MoreHorizontalIcon
-                />
+                <MoreHorizontalIcon />
                 <span className="sr-only">More</span>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -57,19 +59,16 @@ export function NavProjects({
                 align={isMobile ? "end" : "start"}
               >
                 <DropdownMenuItem>
-                  <FolderIcon
-                  />
+                  <FolderIcon />
                   <span>View Project</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
-                  <ArrowRightIcon
-                  />
+                  <ArrowRightIcon />
                   <span>Share Project</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem variant="destructive">
-                  <Trash2Icon
-                  />
+                  <Trash2Icon />
                   <span>Delete Project</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>

@@ -14,6 +14,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 import { ChevronRightIcon } from "lucide-react"
+import { Link } from "react-router-dom" // Added React Router import
 
 export function NavMain({
   items,
@@ -21,7 +22,7 @@ export function NavMain({
   items: {
     title: string
     url: string
-    icon?: React.ReactNode
+    icon?: React.ElementType // Updated to accept a component reference
     isActive?: boolean
     items?: {
       title: string
@@ -43,15 +44,17 @@ export function NavMain({
             <CollapsibleTrigger
               render={<SidebarMenuButton tooltip={item.title} />}
             >
-              {item.icon}
+              {/* Instantiate the icon component if it exists */}
+              {item.icon && <item.icon />}
               <span>{item.title}</span>
-              <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-open/collapsible:rotate-90" />
+              <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
             </CollapsibleTrigger>
             <CollapsibleContent>
               <SidebarMenuSub>
                 {item.items?.map((subItem) => (
                   <SidebarMenuSubItem key={subItem.title}>
-                    <SidebarMenuSubButton render={<a href={subItem.url} />}>
+                    {/* Replaced <a> with <Link> */}
+                    <SidebarMenuSubButton render={<Link to={subItem.url} />}>
                       <span>{subItem.title}</span>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
