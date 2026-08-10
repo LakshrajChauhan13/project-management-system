@@ -36,9 +36,10 @@ interface TaskStore {
   updateTaskStatus: (taskId: string, newStatus: string) => void
   updateTask: (taskId: string, updates: Partial<Task>) => void
   approveSprint: (taskIdsToApprove: string[]) => void
+  deleteTask: (taskId: string) => void
+  deleteMultipleTasks: (taskIds: string[]) => void // NEW: Bulk delete action
 }
 
-// Wrap the store in the 'persist' middleware
 export const useTaskStore = create<TaskStore>()(
   persist(
     (set) => ({
@@ -70,9 +71,19 @@ export const useTaskStore = create<TaskStore>()(
             taskIdsToApprove.includes(task.id) ? { ...task, status: "To Do" } : task
           )
         })),
+
+      deleteTask: (taskId) =>
+        set((state) => ({
+          tasks: state.tasks.filter((task) => task.id !== taskId)
+        })),
+
+      // NEW: Filter out all tasks whose IDs are in the array
+      deleteMultipleTasks: (taskIds) =>
+        set((state) => ({
+          tasks: state.tasks.filter((task) => !taskIds.includes(task.id))
+        })),
     }),
     {
-      // This is the key that will be used in your browser's localStorage
       name: 'agile-task-storage',
     }
   )

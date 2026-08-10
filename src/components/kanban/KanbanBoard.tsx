@@ -1,40 +1,87 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Plus, MoreHorizontal, AlignLeft, X, Trash2, CheckSquare, Target, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
-import { useTaskStore } from "@/store/useTaskStore"
+import { useTaskStore, type Task } from "@/store/useTaskStore"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
-// We moved COLUMNS into the component state, but we keep the initial state here
 const INITIAL_COLUMNS = ["To Do", "In Progress", "Code Review", "Testing", "Done"]
 
 export function KanbanBoard() {
-  // --- Board State ---
   const tasks = useTaskStore((state) => state.tasks)
   const addTask = useTaskStore((state) => state.addTask)
   const updateTaskStatus = useTaskStore((state) => state.updateTaskStatus)
-  const updateTask = useTaskStore((state) => state.updateTask) // NEW: for editing task details
+  const updateTask = useTaskStore((state) => state.updateTask)
+  const deleteTask = useTaskStore((state) => state.deleteTask)
+  const deleteMultipleTasks = useTaskStore((state) => state.deleteMultipleTasks)
   
   const [columns, setColumns] = useState(INITIAL_COLUMNS)
   const [activeColumn, setActiveColumn] = useState<string | null>(null)
   
-  // --- Dynamic Column State ---
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const [isAddingColumn, setIsAddingColumn] = useState(false)
   const [newColumnName, setNewColumnName] = useState("")
 
-  // --- Modal & Form State ---
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null) // NEW: Tracks which task is being viewed
+  // --- UNIFIED MODAL STATE ---
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   
-  const [newTask, setNewTask] = useState({
-    title: "",
-    priority: "Medium",
-    points: 1,
-    assignee: "LC", 
-    status: "To Do" 
-  })
+  const defaultTask: Partial<Task> = { title: "", description: "", acceptanceCriteria: [], priority: "Medium", points: 1, assignee: "LC", status: "To Do" }
+  const [formData, setFormData] = useState<Partial<Task>>(defaultTask)
 
-  // NEW: Helper to get the full task object for the details modal
-  const selectedTask = tasks.find(t => t.id === selectedTaskId)
+  // --- DELETE MODAL STATE ---
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null)
+  const [selectedForBulk, setSelectedForBulk] = useState<string[]>([])
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false)
+
+  // --- Close Modal on Escape Key ---
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsTaskModalOpen(false) }
+    if (isTaskModalOpen) window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [isTaskModalOpen])
+
+  // --- Handlers for Unified Modal ---
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) setIsTaskModalOpen(false)
+  }
+
+  const openCreateModal = (defaultStatus = columns[0]) => {
+    setFormData({ ...defaultTask, status: defaultStatus })
+    setModalMode('create')
+    setEditingTaskId(null)
+    setIsTaskModalOpen(true)
+  }
+
+  const openEditModal = (task: Task) => {
+    setFormData({ ...task })
+    setModalMode('edit')
+    setEditingTaskId(task.id)
+    setIsTaskModalOpen(true)
+  }
+
+  const handleSaveTask = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.title?.trim()) return
+
+    if (modalMode === 'create') {
+      addTask({ ...formData, id: `TSK-${Math.floor(Math.random() * 900) + 100}` } as Task)
+      toast.success("Task created successfully.")
+    } else if (modalMode === 'edit' && editingTaskId) {
+      updateTask(editingTaskId, formData)
+      toast.success("Task updated successfully.")
+    }
+    setIsTaskModalOpen(false)
+  }
 
   const getPriorityColor = (priority: string) => {
     switch(priority?.toLowerCase()) {
@@ -45,89 +92,57 @@ export function KanbanBoard() {
     }
   }
 
-  // --- Drag and Drop Handlers ---
+  // --- Drag and Drop ---
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     e.dataTransfer.setData("taskId", taskId)
-    setTimeout(() => {
-      (e.target as HTMLElement).style.opacity = "0.5"
-    }, 0)
+    setTimeout(() => { (e.target as HTMLElement).style.opacity = "0.4" }, 0)
   }
-
   const handleDragEnd = (e: React.DragEvent) => {
     (e.target as HTMLElement).style.opacity = "1"
     setActiveColumn(null)
   }
-
-  const handleDragOver = (e: React.DragEvent, column: string) => {
-    e.preventDefault() 
-    setActiveColumn(column)
-  }
-
-  const handleDragLeave = () => {
-    setActiveColumn(null)
-  }
-
+  const handleDragOver = (e: React.DragEvent, column: string) => { e.preventDefault(); setActiveColumn(column) }
+  const handleDragLeave = (e: React.DragEvent) => { if (e.currentTarget === e.target) setActiveColumn(null) }
   const handleDrop = (e: React.DragEvent, targetColumn: string) => {
-    e.preventDefault()
-    setActiveColumn(null)
-    const draggedTaskId = e.dataTransfer.getData("taskId")
-    updateTaskStatus(draggedTaskId, targetColumn)
+    e.preventDefault(); setActiveColumn(null); const draggedTaskId = e.dataTransfer.getData("taskId"); updateTaskStatus(draggedTaskId, targetColumn)
   }
 
-  const handleCreateTask = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newTask.title.trim()) return
-
-    const createdTask = {
-      ...newTask,
-      id: `TSK-${Math.floor(Math.random() * 900) + 100}`, 
-    }
-
-    // Use global store action
-    addTask(createdTask)
-    
-    setNewTask({ title: "", priority: "Medium", points: 1, assignee: "LC", status: columns[0] || "To Do" })
-    setIsModalOpen(false)
-  }
-
-  // --- Column Management Handlers ---
   const handleAddColumn = (e: React.FormEvent) => {
     e.preventDefault()
     const trimmedName = newColumnName.trim()
-    // Prevent empty names or duplicate columns
-    if(!trimmedName){
-      toast.error("Column name cannot be empty")
-    }
-    
-    const columnExists = columns.some(col => col.toLowerCase() === trimmedName.toLowerCase())
-    if(columnExists){
-      toast.error("Column with this name already exists.")
-      return
-    }
-    
-    if (!trimmedName || columns.includes(trimmedName)) return
-    
+    if(!trimmedName) return toast.error("Column name cannot be empty")
+    if(columns.some(col => col.toLowerCase() === trimmedName.toLowerCase())) return toast.error("Column with this name already exists.")
     setColumns([...columns, trimmedName])
     setNewColumnName("")
     setIsAddingColumn(false)
   }
 
-  const handleDeleteColumn = (columnToDelete: string) => {
-    setColumns(columns.filter(col => col !== columnToDelete))
-    setActiveDropdown(null)
+  const toggleSelection = (e: React.ChangeEvent<HTMLInputElement>, taskId: string) => {
+    if (e.target.checked) setSelectedForBulk([...selectedForBulk, taskId])
+    else setSelectedForBulk(selectedForBulk.filter(id => id !== taskId))
   }
 
   return (
     <div className="h-[calc(100vh-12rem)] flex flex-col relative">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 shrink-0">
         <h2 className="text-xl font-semibold tracking-tight">Current Sprint Board</h2>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center justify-center gap-2 px-4 py-2 w-full sm:w-auto bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 hover:shadow-md active:translate-y-0.5 transition-all duration-100 shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          Add Task
-        </button>
+        
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {selectedForBulk.length > 0 && (
+            <button 
+              onClick={() => setIsBulkDeleteDialogOpen(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg text-sm font-medium transition-all shadow-sm"
+            >
+              <Trash2 className="w-4 h-4" /> Delete Selected ({selectedForBulk.length})
+            </button>
+          )}
+          <button 
+            onClick={() => openCreateModal()}
+            className="flex items-center justify-center gap-2 px-4 py-2 w-full sm:w-auto bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 hover:shadow-md active:translate-y-0.5 transition-all duration-100 shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> Add Task
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4 flex-1 items-start snap-x custom-scrollbar">
@@ -138,43 +153,25 @@ export function KanbanBoard() {
           return (
             <div 
               key={column} 
-              onDragOver={(e) => handleDragOver(e, column)}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, column)}
-              className={`flex flex-col min-w-[280px] md:min-w-[320px] w-[280px] md:w-[320px] max-h-full rounded-xl border shrink-0 snap-center sm:snap-start transition-colors duration-200 ${
-                isDragActive ? "bg-primary/5 border-primary/50" : "bg-muted/30 border-border"
+              onDragOver={(e) => handleDragOver(e, column)} onDragLeave={handleDragLeave} onDrop={(e) => handleDrop(e, column)}
+              className={`flex flex-col min-w-[280px] md:min-w-[320px] w-[280px] md:w-[320px] max-h-full rounded-xl border shrink-0 snap-center sm:snap-start transition-all duration-200 ${
+                isDragActive ? "bg-primary/10 border-primary border-dashed shadow-inner ring-2 ring-primary/20 scale-[1.01]" : "bg-muted/30 border-border"
               }`}
             >
               <div className="p-4 flex items-center justify-between border-b border-border/50 shrink-0 relative">
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium text-sm">{column}</h3>
-                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-muted text-xs text-muted-foreground font-medium">
-                    {columnTasks.length}
-                  </span>
+                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-muted text-xs text-muted-foreground font-medium">{columnTasks.length}</span>
                 </div>
-                
-                {/* 3-Dot Menu Trigger */}
-                <button 
-                  onClick={() => setActiveDropdown(activeDropdown === column ? null : column)}
-                  className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
-                >
+                <button onClick={() => setActiveDropdown(activeDropdown === column ? null : column)} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted">
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
-
-                {/* Dropdown Menu Overlay */}
                 {activeDropdown === column && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-10" 
-                      onClick={() => setActiveDropdown(null)} 
-                    />
+                    <div className="fixed inset-0 z-10" onClick={() => setActiveDropdown(null)} />
                     <div className="absolute right-4 top-12 mt-1 w-40 bg-card border border-border shadow-lg rounded-lg z-20 py-1 animate-in fade-in zoom-in-95 duration-100">
-                      <button 
-                        onClick={() => handleDeleteColumn(column)}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete Column
+                      <button onClick={() => { setColumns(columns.filter(col => col !== column)); setActiveDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors">
+                        <Trash2 className="w-4 h-4" /> Delete Column
                       </button>
                     </div>
                   </>
@@ -182,344 +179,215 @@ export function KanbanBoard() {
               </div>
 
               <div className="p-3 flex flex-col gap-3 overflow-y-auto flex-1 custom-scrollbar">
-                {columnTasks.map((task) => (
-                  <div 
-                    key={task.id} 
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, task.id)}
-                    onDragEnd={handleDragEnd}
-                    onClick={() => setSelectedTaskId(task.id)} // NEW: Open details modal on click
-                    className="group p-4 bg-card rounded-lg border border-border shadow-sm hover:shadow-md hover:-translate-y-0.5 hover:border-primary/30 transition-all duration-200 cursor-pointer flex flex-col gap-3"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <span className={`px-2 py-0.5 rounded border text-[10px] font-semibold uppercase tracking-wider ${getPriorityColor(task.priority)}`}>
-                        {task.priority}
-                      </span>
-                    </div>
-
-                    <p className="text-sm font-medium leading-snug">{task.title}</p>
-                    
-                    <div className="flex items-center justify-between mt-1">
-                      <div className="flex items-center gap-3 text-muted-foreground">
-                        <div className="flex items-center gap-1 text-xs">
-                          <AlignLeft className="w-3.5 h-3.5" />
+                {columnTasks.map((task) => {
+                  const isSelected = selectedForBulk.includes(task.id)
+                  
+                  return (
+                    <div 
+                      key={task.id} draggable onDragStart={(e) => handleDragStart(e, task.id)} onDragEnd={handleDragEnd}
+                      onClick={() => openEditModal(task)} 
+                      className={`group p-4 bg-card rounded-lg border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col gap-3 ${
+                        isSelected ? "border-red-500/50 bg-red-500/5 ring-1 ring-red-500/20" : "border-border hover:border-primary/30"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <input 
+                            type="checkbox" checked={isSelected} onChange={(e) => toggleSelection(e, task.id)} onClick={(e) => e.stopPropagation()} 
+                            className="w-3.5 h-3.5 rounded border-border text-red-500 focus:ring-red-500 cursor-pointer"
+                          />
+                          <span className={`px-2 py-0.5 rounded border text-[10px] font-semibold uppercase tracking-wider ${getPriorityColor(task.priority)}`}>{task.priority}</span>
                         </div>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setTaskToDelete(task.id); }}
+                          className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 p-1 rounded transition-all"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
+                      <p className="text-sm font-medium leading-snug">{task.title}</p>
                       
-                      <div className="flex items-center gap-2">
-                        <span className="flex items-center justify-center w-6 h-6 rounded-md bg-muted text-xs font-medium border border-border">
-                          {task.points}
-                        </span>
-                        <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold border border-primary/20">
-                          {task.assignee}
+                      <div className="flex items-center justify-between mt-1">
+                        <div className="flex items-center gap-3 text-muted-foreground">
+                          <div className="flex items-center gap-1 text-xs">{(task.description || task.acceptanceCriteria) && <AlignLeft className="w-3.5 h-3.5" />}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="flex items-center justify-center w-6 h-6 rounded-md bg-muted text-xs font-medium border border-border">{task.points}</span>
+                          <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold border border-primary/20">{task.assignee}</div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                
+                  )
+                })}
                 <button 
-                  onClick={() => {
-                    setNewTask({ ...newTask, status: column })
-                    setIsModalOpen(true)
-                  }}
+                  onClick={() => openCreateModal(column)}
                   className="flex items-center gap-2 p-3 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors border border-transparent border-dashed hover:border-border mt-1"
                 >
-                  <Plus className="w-4 h-4" />
-                  Add Card
+                  <Plus className="w-4 h-4" /> Add Card
                 </button>
               </div>
             </div>
           )
         })}
 
-        {/* --- Add New Column UI --- */}
         <div className="flex flex-col min-w-[280px] md:min-w-[320px] w-[280px] md:w-[320px] shrink-0 snap-center sm:snap-start pt-1">
           {isAddingColumn ? (
-            <form 
-              onSubmit={handleAddColumn}
-              className="p-3 bg-card rounded-xl border border-border shadow-sm flex flex-col gap-3"
-            >
-              <input 
-                autoFocus
-                type="text"
-                placeholder="Column name..."
-                value={newColumnName}
-                onChange={(e) => setNewColumnName(e.target.value)}
-                className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-              />
+            <form onSubmit={handleAddColumn} className="p-3 bg-card rounded-xl border border-border shadow-sm flex flex-col gap-3">
+              <input autoFocus type="text" placeholder="Column name..." value={newColumnName} onChange={(e) => setNewColumnName(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"/>
               <div className="flex items-center gap-2">
-                <button 
-                  type="submit"
-                  className="flex-1 bg-primary text-primary-foreground py-1.5 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
-                >
-                  Save
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => {
-                    setIsAddingColumn(false)
-                    setNewColumnName("")
-                  }}
-                  className="flex-1 bg-muted text-muted-foreground py-1.5 rounded-md text-sm font-medium hover:bg-muted/80 transition-colors"
-                >
-                  Cancel
-                </button>
+                <button type="submit" className="flex-1 bg-primary text-primary-foreground py-1.5 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors">Save</button>
+                <button type="button" onClick={() => { setIsAddingColumn(false); setNewColumnName(""); }} className="flex-1 bg-muted text-muted-foreground py-1.5 rounded-md text-sm font-medium hover:bg-muted/80 transition-colors">Cancel</button>
               </div>
             </form>
           ) : ( 
-            <button 
-              onClick={() => setIsAddingColumn(true)}
-              className="flex items-center justify-center gap-2 h-14 bg-muted/20 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Add Column
+            <button onClick={() => setIsAddingColumn(true)} className="flex items-center justify-center gap-2 h-14 bg-muted/20 border-2 border-dashed border-border rounded-xl text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors">
+              <Plus className="w-4 h-4" /> Add Column
             </button>
           )}
         </div>
       </div>
 
-      {/* --- NEW: Task Details Modal Overlay --- */}
-      {selectedTask && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-sm px-4">
-          <div className="bg-card border border-border shadow-xl rounded-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      {/* --- UNIFIED TASK MODAL --- */}
+      {isTaskModalOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm px-4" onClick={handleBackdropClick}>
+          <div className="bg-card border border-border shadow-xl rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/30 shrink-0">
               <div className="flex items-center gap-3">
-                <span className="px-2 py-1 bg-background border border-border rounded text-xs font-semibold text-muted-foreground">
-                  {selectedTask.id}
-                </span>
-                {selectedTask.project && (
-                  <span className="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-semibold uppercase tracking-wider">
-                    {selectedTask.project}
-                  </span>
-                )}
+                <h3 className="text-lg font-semibold">{modalMode === 'create' ? 'Create New Task' : 'Edit Task'}</h3>
+                {modalMode === 'edit' && editingTaskId && <span className="px-2 py-1 bg-background border border-border rounded text-xs font-semibold text-muted-foreground">{editingTaskId}</span>}
+                {formData.project && <span className="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-semibold uppercase tracking-wider">{formData.project}</span>}
               </div>
-              <button 
-                onClick={() => setSelectedTaskId(null)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-muted"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <button type="button" onClick={() => setIsTaskModalOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-muted"><X className="w-5 h-5" /></button>
             </div>
 
-            <div className="flex-1 overflow-y-auto flex flex-col md:flex-row">
-              
-              <div className="flex-1 p-6 space-y-8 border-r border-border">
-                <div>
-                  <textarea 
-                    value={selectedTask.title}
-                    onChange={(e) => updateTask(selectedTask.id, { title: e.target.value })}
-                    className="w-full text-2xl font-bold bg-transparent border border-transparent hover:border-border/50 focus:border-primary/50 focus:bg-background rounded-lg p-2 resize-none outline-none transition-all"
-                    rows={2}
-                  />
+            <form onSubmit={handleSaveTask} className="flex-1 overflow-hidden flex flex-col md:flex-row">
+              <div className="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar border-r border-border">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">Task Title <span className="text-red-500">*</span></label>
+                  <input type="text" required placeholder="e.g., Define user roles logic" value={formData.title || ""} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 text-lg font-semibold bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"/>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold flex items-center gap-2 text-muted-foreground"><AlignLeft className="w-4 h-4" /> Description</label>
+                  <textarea placeholder="Add a more detailed description..." value={formData.description || ""} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full min-h-[120px] p-3 text-sm bg-muted/30 border border-border/50 rounded-lg focus:border-primary/50 focus:bg-background outline-none transition-all resize-y"/>
                 </div>
 
                 <div className="space-y-3">
-                  <h3 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
-                    <AlignLeft className="w-4 h-4" /> Description
-                  </h3>
-                  <textarea 
-                    placeholder="Add a more detailed description..."
-                    value={selectedTask.description || ""}
-                    onChange={(e) => updateTask(selectedTask.id, { description: e.target.value })}
-                    className="w-full min-h-[120px] p-3 text-sm bg-muted/30 border border-border/50 rounded-lg hover:border-border focus:border-primary/50 focus:bg-background outline-none transition-all resize-y"
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
-                    <CheckSquare className="w-4 h-4" /> Acceptance Criteria
-                  </h3>
+                  <label className="text-sm font-semibold flex items-center gap-2 text-muted-foreground"><CheckSquare className="w-4 h-4" /> Acceptance Criteria</label>
                   <div className="space-y-2">
-                    {selectedTask.acceptanceCriteria && selectedTask.acceptanceCriteria.length > 0 ? (
-                      selectedTask.acceptanceCriteria.map((criteria, idx) => (
-                        <div key={idx} className="flex items-start gap-3 p-3 rounded-lg border border-border/50 bg-background shadow-sm group">
-                          <input type="checkbox" className="mt-1 w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer" />
-                          <input 
-                            type="text"
-                            value={criteria}
-                            onChange={(e) => {
-                              const newCriteria = [...(selectedTask.acceptanceCriteria || [])];
-                              newCriteria[idx] = e.target.value;
-                              updateTask(selectedTask.id, { acceptanceCriteria: newCriteria });
-                            }}
-                            className="flex-1 text-sm bg-transparent outline-none border-b border-transparent focus:border-primary/50"
-                          />
-                        </div>
-                      ))
-                    ) : (
-                      <button className="text-sm text-muted-foreground p-3 w-full border border-dashed border-border rounded-lg hover:bg-muted/50 hover:text-foreground transition-all">
-                        + Add Acceptance Criteria
-                      </button>
-                    )}
+                    {formData.acceptanceCriteria?.map((criteria: string, idx: number) => (
+                      <div key={idx} className="flex items-start gap-2 group">
+                        <div className="mt-2.5 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                        <input type="text" required value={criteria} onChange={(e) => { const newAC = [...(formData.acceptanceCriteria || [])]; newAC[idx] = e.target.value; setFormData({ ...formData, acceptanceCriteria: newAC }); }} className="flex-1 px-3 py-1.5 text-sm bg-background border border-border/50 focus:border-primary/50 rounded-md outline-none transition-all" placeholder="Enter criteria..."/>
+                        <button type="button" onClick={() => { const newAC = [...(formData.acceptanceCriteria || [])]; newAC.splice(idx, 1); setFormData({ ...formData, acceptanceCriteria: newAC }); }} className="p-1.5 text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-4 h-4" /></button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => setFormData({ ...formData, acceptanceCriteria: [...(formData.acceptanceCriteria || []), ""] })} className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-1 mt-2">
+                      <Plus className="w-3 h-3" /> Add Criteria
+                    </button>
                   </div>
                 </div>
               </div>
 
-              <div className="w-full md:w-72 bg-muted/10 p-6 space-y-6 shrink-0">
-                
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</label>
-                  <select 
-                    value={selectedTask.status}
-                    onChange={(e) => updateTask(selectedTask.id, { status: e.target.value })}
-                    className="w-full p-2 text-sm bg-background border border-border rounded-lg outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
-                  >
-                    {columns.map(col => <option key={col} value={col}>{col}</option>)}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assignee</label>
-                  <div className="flex items-center gap-3 p-2 bg-background border border-border rounded-lg">
-                    <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold border border-primary/20 shrink-0">
-                      {selectedTask.assignee}
-                    </div>
-                    <input 
-                      type="text"
-                      value={selectedTask.assignee}
-                      onChange={(e) => updateTask(selectedTask.id, { assignee: e.target.value })}
-                      className="w-full text-sm bg-transparent outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Priority</label>
-                  <div className="flex items-center gap-2 p-2 bg-background border border-border rounded-lg">
-                    <AlertCircle className={`w-4 h-4 shrink-0 ${selectedTask.priority === 'Critical' ? 'text-red-500' : selectedTask.priority === 'High' ? 'text-orange-500' : 'text-blue-500'}`} />
-                    <select 
-                      value={selectedTask.priority}
-                      onChange={(e) => updateTask(selectedTask.id, { priority: e.target.value })}
-                      className="w-full text-sm bg-transparent outline-none cursor-pointer"
-                    >
-                      <option value="Low">Low</option>
-                      <option value="Medium">Medium</option>
-                      <option value="High">High</option>
-                      <option value="Critical">Critical</option>
+              <div className="w-full md:w-72 bg-muted/10 p-6 space-y-6 shrink-0 overflow-y-auto custom-scrollbar flex flex-col">
+                <div className="space-y-6 flex-1">
+                  
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status <span className="text-red-500">*</span></label>
+                    <select required value={formData.status || "To Do"} onChange={(e) => setFormData({...formData, status: e.target.value})} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all cursor-pointer">
+                      <option value="Backlog">Backlog</option>
+                      {columns.map(col => <option key={col} value={col}>{col}</option>)}
                     </select>
                   </div>
-                </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assignee <span className="text-red-500">*</span></label>
+                    <input type="text" required value={formData.assignee || ""} onChange={(e) => setFormData({...formData, assignee: e.target.value})} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"/>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Priority <span className="text-red-500">*</span></label>
+                    <div className="flex items-center gap-2 p-2 bg-background border border-border rounded-lg">
+                      <AlertCircle className={`w-4 h-4 shrink-0 ${formData.priority === 'Critical' ? 'text-red-500' : formData.priority === 'High' ? 'text-orange-500' : 'text-blue-500'}`} />
+                      <select required value={formData.priority || "Medium"} onChange={(e) => setFormData({...formData, priority: e.target.value})} className="w-full text-sm bg-transparent outline-none cursor-pointer">
+                        <option value="Low">Low</option><option value="Medium">Medium</option><option value="High">High</option><option value="Critical">Critical</option>
+                      </select>
+                    </div>
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Story Points</label>
-                  <div className="flex items-center gap-2 p-2 bg-background border border-border rounded-lg focus-within:ring-2 focus-within:ring-primary/50">
-                    <Target className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <input 
-                      type="number"
-                      min="1"
-                      value={selectedTask.points}
-                      onChange={(e) => updateTask(selectedTask.id, { points: parseInt(e.target.value) || 0 })}
-                      className="w-full text-sm bg-transparent outline-none"
-                    />
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Story Points <span className="text-red-500">*</span></label>
+                    <div className="flex items-center gap-2 p-2 bg-background border border-border rounded-lg focus-within:ring-2 focus-within:ring-primary/50">
+                      <Target className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <input type="number" required min="1" value={formData.points || 1} onChange={(e) => setFormData({...formData, points: parseInt(e.target.value) || 0})} className="w-full text-sm bg-transparent outline-none"/>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* --- Existing Create Task Modal Overlay --- */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm px-4">
-          <div className="bg-card border border-border shadow-lg rounded-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-6 border-b border-border">
-              <h3 className="text-lg font-semibold">Create New Task</h3>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <form onSubmit={handleCreateTask} className="p-6 space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Task Title</label>
-                <input 
-                  type="text"
-                  required
-                  placeholder="e.g., Implement WebSocket auth for Vaulrizz"
-                  value={newTask.title}
-                  onChange={(e) => setNewTask({...newTask, title: e.target.value})}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Priority</label>
-                  <select 
-                    value={newTask.priority}
-                    onChange={(e) => setNewTask({...newTask, priority: e.target.value})}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                  >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Critical">Critical</option>
-                  </select>
+                <div className="pt-6 mt-6 border-t border-border space-y-3">
+                  <button type="submit" className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-all shadow-sm">
+                    {modalMode === 'create' ? 'Create Task' : 'Save Changes'}
+                  </button>
+                  {modalMode === 'edit' && editingTaskId && (
+                    <button type="button" onClick={() => setTaskToDelete(editingTaskId)} className="w-full flex items-center justify-center gap-2 p-2 text-sm text-red-500 hover:bg-red-500/10 hover:text-red-600 rounded-lg transition-colors border border-transparent hover:border-red-500/20">
+                      <Trash2 className="w-4 h-4" /> Delete Task
+                    </button>
+                  )}
                 </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Story Points</label>
-                  <input 
-                    type="number"
-                    min="1"
-                    max="21"
-                    value={newTask.points}
-                    onChange={(e) => setNewTask({...newTask, points: parseInt(e.target.value)})}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Assignee</label>
-                  <input 
-                    type="text"
-                    value={newTask.assignee}
-                    onChange={(e) => setNewTask({...newTask, assignee: e.target.value})}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Status</label>
-                  <select 
-                    value={newTask.status}
-                    onChange={(e) => setNewTask({...newTask, status: e.target.value})}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                  >
-                    {columns.map(col => (
-                      <option key={col} value={col}>{col}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="pt-4 flex items-center justify-end gap-3 border-t border-border mt-6">
-                <button 
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
-                >
-                  Create Task
-                </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* --- SINGLE Delete Shadcn Alert Dialog --- */}
+      <AlertDialog open={!!taskToDelete} onOpenChange={(isOpen) => !isOpen && setTaskToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone. This will permanently delete this task from our servers.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (taskToDelete) {
+                  deleteTask(taskToDelete)
+                  setSelectedForBulk(prev => prev.filter(id => id !== taskToDelete))
+                  if (taskToDelete === editingTaskId) setIsTaskModalOpen(false) // Close modal if deleting from inside
+                  setTaskToDelete(null)
+                  toast.success("Task deleted successfully.")
+                }
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* --- BULK Delete Shadcn Alert Dialog --- */}
+      <AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedForBulk.length} Tasks?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone. You are about to permanently delete {selectedForBulk.length} tasks from your project.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                deleteMultipleTasks(selectedForBulk)
+                setIsBulkDeleteDialogOpen(false)
+                setSelectedForBulk([])
+                toast.success(`${selectedForBulk.length} tasks deleted successfully.`)
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >Delete Selected</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   )
 }
