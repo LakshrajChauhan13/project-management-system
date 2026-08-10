@@ -7,6 +7,9 @@ import { MainLayout } from "@/components/layout/MainLayout"
 // Import our feature components
 import { DashboardOverview } from "@/components/dashboard/DashboardOverview"
 import { KanbanBoard } from "./components/kanban/KanbanBoard"
+import { AIStoryGenerator } from "./components/ai/AiStoryGenerator"
+import { AISprintPlanner } from "./components/ai/AiSprintPlanner"
+import { BacklogView } from "./components/kanban/BacklogView"
 // import { ProjectsView } from "@/components/projects/ProjectsView"
 
 function App() {
@@ -25,6 +28,10 @@ function App() {
           {/* Active Feature Modules */}
           <Route path="dashboard" element={<DashboardOverview />} />
           <Route path="kanban" element={<KanbanBoard />} />
+          <Route path="backlog" element={<BacklogView />} />
+          <Route path="ai-story" element={<AIStoryGenerator />} />
+          <Route path="ai-sprint-planner" element={<AISprintPlanner />} />
+          {/* Inside your <Routes> component: */}
           {/* <Route path="projects" element={<ProjectsView />} /> */}
           
           {/* Catch-all for paths/modules not yet built */}
