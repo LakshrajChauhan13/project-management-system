@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils"
 import { Collapsible as CollapsiblePrimitive } from "@base-ui/react/collapsible"
 
 function Collapsible({ ...props }: CollapsiblePrimitive.Root.Props) {
@@ -10,10 +11,20 @@ function CollapsibleTrigger({ ...props }: CollapsiblePrimitive.Trigger.Props) {
   )
 }
 
-function CollapsibleContent({ ...props }: CollapsiblePrimitive.Panel.Props) {
+function CollapsibleContent({
+  className,
+  ...props
+}: CollapsiblePrimitive.Panel.Props) {
   return (
-    <CollapsiblePrimitive.Panel data-slot="collapsible-content" {...props} />
+    <CollapsiblePrimitive.Panel
+      data-slot="collapsible-content"
+      className={cn(
+        "h-[var(--collapsible-panel-height)] overflow-hidden transition-[height] duration-200 ease-out",
+        "data-[starting-style]:h-0 data-[ending-style]:h-0",
+        className
+      )}
+      {...props}
+    />
   )
 }
-
 export { Collapsible, CollapsibleTrigger, CollapsibleContent }

@@ -5,6 +5,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+    --shadow-aceternity: 
+    0px 2px 3px -1px rgba(0, 0, 0, 0.1),
+    0px 1px 0px 0px rgba(25, 28, 33, 0.02),
+    0px 0px 0px 1px rgba(25, 28, 33, 0.08);
+}
+
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
@@ -127,4 +134,20 @@
   html {
     @apply font-sans;
     }
+  :root {
+    /* --- Custom Chart Colors: Light Mode (Blue Theme) --- */
+    --chart-actual: 221 83% 53%;       /* Little Dark Blue */
+    --chart-ideal: 213 94% 82%;        /* Light Blue */
+    --chart-completed: 221 83% 53%;    /* Little Dark Blue */
+    --chart-expected: 213 94% 82%;     /* Light Blue */
+  }
+
+  .dark {
+    /* --- Custom Chart Colors: Dark Mode (Reddish-Orange Theme) --- */
+    --chart-actual: 15 90% 60%;        /* Vibrant Reddish Orange */
+    --chart-ideal: 15 40% 30%;         /* Muted Reddish Orange */
+    --chart-completed: 15 90% 60%;     /* Vibrant Reddish Orange */
+    --chart-expected: 15 40% 30%;      /* Muted Reddish Orange */
+  }
 }
+

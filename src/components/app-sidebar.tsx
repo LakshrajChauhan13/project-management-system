@@ -62,6 +62,7 @@ const data = {
       items: [
         { title: "All Projects", url: "/projects" },
         { title: "Kanban Board", url: "/kanban" },
+        { title: "Product Backlog", url: "/backlog"},
         { title: "Calendar", url: "/calendar" },
       ],
     },
@@ -71,7 +72,7 @@ const data = {
       icon: Bot,
       items: [
         { title: "AI Story Generator", url: "/ai-story" },
-        { title: "AI Sprint Planner", url: "/ai-planner" },
+        { title: "AI Sprint Planner", url: "/ai-sprint-planner" },
       ],
     },
   ],
@@ -101,7 +102,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        {/* NavMain and NavProjects will handle the routing via React Router */}
         <NavMain items={data.navMain} />
         <NavProjects projects={data.projects} />
       </SidebarContent>
