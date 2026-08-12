@@ -1,8 +1,9 @@
 "use client"
 
 import * as React from "react"
+import { useNavigate } from "react-router-dom"
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
+import { NavProjectExecution } from "@/components/nav-project-execution" // Our new component
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import {
@@ -11,21 +12,19 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  SidebarGroup,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
 } from "@/components/ui/sidebar"
 import { 
-  FolderKanban,
-  Zap,
   Bot,
   Sparkles,
   LayoutDashboard,
-  Users,
-  Calendar,
-  BarChart3,
-  Settings,
-  Briefcase 
+  Briefcase, 
+  FolderKanban
 } from "lucide-react"
 
-// Updated: Using absolute paths for React Router and un-invoked icon component references
 const data = {
   user: {
     name: "Lakshraj Chauhan",
@@ -33,16 +32,8 @@ const data = {
     avatar: "/avatars/lakshraj.jpg",
   },
   teams: [
-    {
-      name: "SprintAI OS",
-      logo: <Sparkles />, 
-      plan: "Enterprise",
-    },
-    {
-      name: "Development",
-      logo: <Briefcase />,
-      plan: "Internal",
-    }
+    { name: "SprintAI OS", logo: <Sparkles />, plan: "Enterprise" },
+    { name: "Development", logo: <Briefcase />, plan: "Internal" }
   ],
   navMain: [
     {
@@ -56,17 +47,6 @@ const data = {
       ],
     },
     {
-      title: "Project Execution",
-      url: "/execution",
-      icon: FolderKanban,
-      items: [
-        { title: "All Projects", url: "/projects" },
-        { title: "Kanban Board", url: "/kanban" },
-        { title: "Product Backlog", url: "/backlog"},
-        { title: "Calendar", url: "/calendar" },
-      ],
-    },
-    {
       title: "AI Tools",
       url: "/ai-tools",
       icon: Bot,
@@ -76,36 +56,41 @@ const data = {
       ],
     },
   ],
-  projects: [
-    {
-      name: "OORLY Analytics",
-      url: "/projects/oorly",
-      icon: Zap,
-    },
-    {
-      name: "Vaulrizz Chat",
-      url: "/projects/vaulrizz",
-      icon: Users,
-    },
-    {
-      name: "SecondBrain V2",
-      url: "/projects/secondbrain",
-      icon: Settings,
-    },
-  ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const navigate = useNavigate()
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
+      
       <SidebarContent>
+        {/* Workspace & AI Tools */}
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        
+        {/* Dedicated Project Execution Group */}
+        <NavProjectExecution />
       </SidebarContent>
+      
       <SidebarFooter>
+        {/* Standalone Manage Projects Link */}
+        <SidebarGroup className="p-0 mb-2">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                onClick={() => navigate('/projects')}
+                className="cursor-pointer text-sidebar-foreground/80 font-medium hover:text-foreground"
+              >
+                <FolderKanban className="w-4 h-4" />
+                <span>Manage Projects</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
         <NavUser user={data.user} />
       </SidebarFooter>
       <SidebarRail />

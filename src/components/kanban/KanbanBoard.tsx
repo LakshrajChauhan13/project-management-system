@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react"
-import { Plus, MoreHorizontal, AlignLeft, X, Trash2, CheckSquare, Target, AlertCircle } from "lucide-react"
+import { Plus, MoreHorizontal, AlignLeft, X, Trash2, CheckSquare, Target, AlertCircle, Briefcase } from "lucide-react"
 import { toast } from "sonner"
 import { useTaskStore, type Task } from "@/store/useTaskStore"
+import { useProjectStore } from "@/store/useProjectStore" 
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,25 +13,27 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { useParams } from "react-router-dom"
 
 const INITIAL_COLUMNS = ["To Do", "In Progress", "Code Review", "Testing", "Done"]
 
 export function KanbanBoard() {
-  const tasks = useTaskStore((state) => state.tasks)
-  const addTask = useTaskStore((state) => state.addTask)
-  const updateTaskStatus = useTaskStore((state) => state.updateTaskStatus)
-  const updateTask = useTaskStore((state) => state.updateTask)
-  const deleteTask = useTaskStore((state) => state.deleteTask)
-  const deleteMultipleTasks = useTaskStore((state) => state.deleteMultipleTasks)
+  // NEW: Updated to use currentProjectId from our refactored store
+  const { projectId } = useParams<{ projectId: string }>() // Extract ID from the URL
+  const { currentProjectId, setCurrentProjectId } = useProjectStore() 
   
+  // FIXED: Destructuring directly prevents the implicit 'any' type error on 'state'
+  const { tasks, addTask, updateTaskStatus, updateTask, deleteTask, deleteMultipleTasks } = useTaskStore()
+  
+  // Filter tasks scoped to the globally selected project
+  const projectTasks = tasks.filter(task => task.projectId === currentProjectId)
+
   const [columns, setColumns] = useState(INITIAL_COLUMNS)
   const [activeColumn, setActiveColumn] = useState<string | null>(null)
-  
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const [isAddingColumn, setIsAddingColumn] = useState(false)
   const [newColumnName, setNewColumnName] = useState("")
 
-  // --- UNIFIED MODAL STATE ---
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
@@ -38,19 +41,22 @@ export function KanbanBoard() {
   const defaultTask: Partial<Task> = { title: "", description: "", acceptanceCriteria: [], priority: "Medium", points: 1, assignee: "LC", status: "To Do" }
   const [formData, setFormData] = useState<Partial<Task>>(defaultTask)
 
-  // --- DELETE MODAL STATE ---
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null)
   const [selectedForBulk, setSelectedForBulk] = useState<string[]>([])
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false)
 
-  // --- Close Modal on Escape Key ---
+  useEffect(() => {
+    if(projectId && projectId !== currentProjectId){
+      setCurrentProjectId(projectId)
+    }
+  }, [projectId, currentProjectId, setCurrentProjectId])
+
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsTaskModalOpen(false) }
     if (isTaskModalOpen) window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
   }, [isTaskModalOpen])
 
-  // --- Handlers for Unified Modal ---
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) setIsTaskModalOpen(false)
   }
@@ -71,10 +77,14 @@ export function KanbanBoard() {
 
   const handleSaveTask = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.title?.trim()) return
+    if (!formData.title?.trim() || !currentProjectId) return
 
     if (modalMode === 'create') {
-      addTask({ ...formData, id: `TSK-${Math.floor(Math.random() * 900) + 100}` } as Task)
+      addTask({ 
+        ...formData, 
+        id: `TSK-${Math.floor(Math.random() * 900) + 100}`,
+        projectId: currentProjectId // Inject the active project ID on creation
+      } as Task)
       toast.success("Task created successfully.")
     } else if (modalMode === 'edit' && editingTaskId) {
       updateTask(editingTaskId, formData)
@@ -92,7 +102,6 @@ export function KanbanBoard() {
     }
   }
 
-  // --- Drag and Drop ---
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     e.dataTransfer.setData("taskId", taskId)
     setTimeout(() => { (e.target as HTMLElement).style.opacity = "0.4" }, 0)
@@ -122,6 +131,17 @@ export function KanbanBoard() {
     else setSelectedForBulk(selectedForBulk.filter(id => id !== taskId))
   }
 
+  // Guard clause if no project is selected
+  if (!currentProjectId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-12rem)] text-muted-foreground border border-dashed border-border rounded-xl p-12">
+        <Briefcase className="w-12 h-12 mb-4 opacity-20" />
+        <h2 className="text-xl font-semibold text-foreground">No Project Selected</h2>
+        <p className="text-sm mt-2">Please select a project from the "Project Execution" menu in the sidebar.</p>
+      </div>
+    )
+  }
+
   return (
     <div className="h-[calc(100vh-12rem)] flex flex-col relative">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 shrink-0">
@@ -147,7 +167,7 @@ export function KanbanBoard() {
 
       <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4 flex-1 items-start snap-x custom-scrollbar">
         {columns.map((column) => {
-          const columnTasks = tasks.filter(task => task.status === column)
+          const columnTasks = projectTasks.filter(task => task.status === column)
           const isDragActive = activeColumn === column
           
           return (
@@ -256,7 +276,6 @@ export function KanbanBoard() {
               <div className="flex items-center gap-3">
                 <h3 className="text-lg font-semibold">{modalMode === 'create' ? 'Create New Task' : 'Edit Task'}</h3>
                 {modalMode === 'edit' && editingTaskId && <span className="px-2 py-1 bg-background border border-border rounded text-xs font-semibold text-muted-foreground">{editingTaskId}</span>}
-                {formData.project && <span className="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-semibold uppercase tracking-wider">{formData.project}</span>}
               </div>
               <button type="button" onClick={() => setIsTaskModalOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-muted"><X className="w-5 h-5" /></button>
             </div>
@@ -341,7 +360,6 @@ export function KanbanBoard() {
         </div>
       )}
 
-      {/* --- SINGLE Delete Shadcn Alert Dialog --- */}
       <AlertDialog open={!!taskToDelete} onOpenChange={(isOpen) => !isOpen && setTaskToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -355,7 +373,7 @@ export function KanbanBoard() {
                 if (taskToDelete) {
                   deleteTask(taskToDelete)
                   setSelectedForBulk(prev => prev.filter(id => id !== taskToDelete))
-                  if (taskToDelete === editingTaskId) setIsTaskModalOpen(false) // Close modal if deleting from inside
+                  if (taskToDelete === editingTaskId) setIsTaskModalOpen(false)
                   setTaskToDelete(null)
                   toast.success("Task deleted successfully.")
                 }
@@ -366,7 +384,6 @@ export function KanbanBoard() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* --- BULK Delete Shadcn Alert Dialog --- */}
       <AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

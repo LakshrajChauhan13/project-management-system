@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react"
-import { Plus, AlignLeft, X, Trash2, CheckSquare, Target, AlertCircle, Search, Filter, ArrowRight } from "lucide-react"
+import { Plus, AlignLeft, X, Trash2, CheckSquare, Target, AlertCircle, Search, Filter, ArrowRight, Briefcase } from "lucide-react"
 import { toast } from "sonner"
 import { useTaskStore, type Task } from "@/store/useTaskStore"
+import { useProjectStore } from "@/store/useProjectStore" // NEW IMPORT
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,20 +13,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { useParams } from "react-router-dom"
 
 export function BacklogView() {
-  const tasks = useTaskStore((state) => state.tasks)
-  const addTask = useTaskStore((state) => state.addTask) 
-  const updateTaskStatus = useTaskStore((state) => state.updateTaskStatus)
-  const updateTask = useTaskStore((state) => state.updateTask)
-  const deleteTask = useTaskStore((state) => state.deleteTask)
-  const deleteMultipleTasks = useTaskStore((state) => state.deleteMultipleTasks) 
+  const { currentProjectId, setCurrentProjectId } = useProjectStore() // NEW: Get global project context
+  const { projectId } = useParams<{projectId: string}>()
   
-  const backlogTasks = tasks.filter(task => task.status === "Backlog")
+  const { tasks, deleteMultipleTasks, deleteTask, addTask, updateTask, updateTaskStatus } = useTaskStore()
+  
+  // NEW: Filter backlog tasks specifically for the active project
+  const backlogTasks = tasks.filter(task => task.status === "Backlog" && task.projectId === currentProjectId)
   
   const [searchQuery, setSearchQuery] = useState("")
   
-  // --- UNIFIED MODAL STATE ---
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
@@ -33,19 +33,22 @@ export function BacklogView() {
   const defaultTask: Partial<Task> = { title: "", description: "", acceptanceCriteria: [], priority: "Medium", points: 1, assignee: "LC", status: "Backlog" }
   const [formData, setFormData] = useState<Partial<Task>>(defaultTask)
 
-  // --- DELETE MODAL STATE ---
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null)
   const [selectedForBulk, setSelectedForBulk] = useState<string[]>([])
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false)
   
-  // --- Close Modal on Escape Key ---
+  useEffect(() => {
+    if(projectId && projectId !== currentProjectId){
+        setCurrentProjectId(projectId)
+    }
+  }, [projectId, currentProjectId, setCurrentProjectId])
+  
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setIsTaskModalOpen(false) }
     if (isTaskModalOpen) window.addEventListener('keydown', handleEsc)
     return () => window.removeEventListener('keydown', handleEsc)
   }, [isTaskModalOpen])
 
-  // --- Handlers for Unified Modal ---
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) setIsTaskModalOpen(false)
   }
@@ -66,10 +69,15 @@ export function BacklogView() {
 
   const handleSaveTask = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.title?.trim()) return
+    if (!formData.title?.trim() || !currentProjectId) return
 
     if (modalMode === 'create') {
-      addTask({ ...formData, id: `TSK-${Math.floor(Math.random() * 900) + 100}`, status: "Backlog" } as Task)
+      addTask({ 
+        ...formData, 
+        id: `TSK-${Math.floor(Math.random() * 900) + 100}`, 
+        status: "Backlog",
+        projectId: currentProjectId // NEW: Inject project context
+      } as Task)
       toast.success("Task added to backlog.")
     } else if (modalMode === 'edit' && editingTaskId) {
       updateTask(editingTaskId, formData)
@@ -96,6 +104,17 @@ export function BacklogView() {
   const toggleSelection = (e: React.ChangeEvent<HTMLInputElement>, taskId: string) => {
     if (e.target.checked) setSelectedForBulk([...selectedForBulk, taskId])
     else setSelectedForBulk(selectedForBulk.filter(id => id !== taskId))
+  }
+
+  // NEW: Guard clause if no project is active
+  if (!currentProjectId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-12rem)] text-muted-foreground border border-dashed border-border rounded-xl p-12">
+        <Briefcase className="w-12 h-12 mb-4 opacity-20" />
+        <h2 className="text-xl font-semibold text-foreground">No Project Selected</h2>
+        <p className="text-sm mt-2">Please select a project from the sidebar to view its Backlog.</p>
+      </div>
+    )
   }
 
   return (
@@ -181,7 +200,7 @@ export function BacklogView() {
                   </div>
                   
                   <div className="col-span-2 hidden md:flex items-center">
-                    {task.project ? <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted border border-border text-muted-foreground">{task.project}</span> : <span className="text-xs text-muted-foreground opacity-50">-</span>}
+                    {task.projectId ? <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-muted border border-border text-muted-foreground">{task.projectId}</span> : <span className="text-xs text-muted-foreground opacity-50">-</span>}
                   </div>
                   <div className="col-span-2 md:col-span-2 flex items-center">
                     <span className={`px-2 py-0.5 rounded border text-[10px] font-semibold uppercase tracking-wider ${getPriorityColor(task.priority)}`}>{task.priority}</span>
@@ -219,7 +238,6 @@ export function BacklogView() {
               <div className="flex items-center gap-3">
                 <h3 className="text-lg font-semibold">{modalMode === 'create' ? 'Create New Backlog Task' : 'Edit Task'}</h3>
                 {modalMode === 'edit' && editingTaskId && <span className="px-2 py-1 bg-background border border-border rounded text-xs font-semibold text-muted-foreground">{editingTaskId}</span>}
-                {formData.project && <span className="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-semibold uppercase tracking-wider">{formData.project}</span>}
               </div>
               <button type="button" onClick={() => setIsTaskModalOpen(false)} className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-muted"><X className="w-5 h-5" /></button>
             </div>
@@ -256,7 +274,6 @@ export function BacklogView() {
               <div className="w-full md:w-72 bg-muted/10 p-6 space-y-6 shrink-0 overflow-y-auto custom-scrollbar flex flex-col">
                 <div className="space-y-6 flex-1">
                   
-                  {/* Status is HIDDEN when creating a new Backlog task */}
                   {modalMode === 'edit' && (
                     <div className="space-y-2">
                       <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status <span className="text-red-500">*</span></label>
