@@ -1,17 +1,25 @@
 import React, { useState } from "react"
-import { Sparkles, Calendar, Users, Target, Loader2, CheckCircle2, ArrowRight, Activity, Info } from "lucide-react"
+import { Sparkles, Calendar, Users, Target, Loader2, CheckCircle2, ArrowRight, Activity, Info, Briefcase } from "lucide-react"
 import { useTaskStore, type Task } from "@/store/useTaskStore"
+import { useProjectStore } from "@/store/useProjectStore" // NEW IMPORT
 import { toast } from "sonner"
 import { useNavigate } from "react-router-dom"
 
 export function AISprintPlanner() {
-  // 1. Get ALL tasks from the store
-  const allTasks = useTaskStore((state) => state.tasks)
-  const approveSprint = useTaskStore(state => state.approveSprint)
   const navigate = useNavigate()
   
-  // 2. Filter dynamically to only look at tasks currently in the Backlog
-  const activeBacklogTasks = allTasks.filter(task => task.status === "Backlog")
+  // 1. Get Project Context
+  const { currentProjectId, projects } = useProjectStore()
+  const activeProject = projects.find(p => p.id === currentProjectId)
+
+  // 2. Get Task Store Actions
+  const allTasks = useTaskStore((state) => state.tasks)
+  const approveSprint = useTaskStore(state => state.approveSprint)
+  
+  // 3. Filter dynamically to ONLY look at the active project's backlog
+  const activeBacklogTasks = allTasks.filter(task => 
+    task.status === "Backlog" && task.projectId === currentProjectId
+  )
 
   const [capacity, setCapacity] = useState<number>(20)
   const [sprintName, setSprintName] = useState("Sprint 5: Core Features")
@@ -19,21 +27,22 @@ export function AISprintPlanner() {
   const [sprintPlan, setSprintPlan] = useState<Task[] | null>(null)
 
   const handleApproveSprint = () => {
-    if (!sprintPlan) return
+    if (!sprintPlan || !currentProjectId) return
 
-    // We just pass the IDs of the approved tasks to move them to "To Do"
+    // Pass the IDs of the approved tasks to move them to "To Do"
     const approvedTaskIds = sprintPlan.map(task => task.id)
     approveSprint(approvedTaskIds)
     
     toast.success("Sprint approved! Tasks moved to 'To Do' on your board.")
-    navigate("/kanban") 
+    // FIXED: Navigate to the dynamic, nested routing path
+    navigate(`/projects/${currentProjectId}/kanban`) 
   }
   
   const handleGeneratePlan = (e: React.FormEvent) => {
     e.preventDefault()
     
     if (activeBacklogTasks.length === 0) {
-      toast.error("Your backlog is empty! Add tasks via the Kanban board or AI Story Generator first.")
+      toast.error("Your backlog for this project is empty! Add tasks via the Kanban board or AI Story Generator first.")
       return
     }
 
@@ -63,6 +72,17 @@ export function AISprintPlanner() {
 
   const totalAllocatedPoints = sprintPlan?.reduce((sum, task) => sum + task.points, 0) || 0
 
+  // NEW: Guard clause if no project is selected
+  if (!currentProjectId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-12rem)] text-muted-foreground border border-dashed border-border rounded-xl p-12 max-w-5xl mx-auto">
+        <Briefcase className="w-12 h-12 mb-4 opacity-20" />
+        <h2 className="text-xl font-semibold text-foreground">No Project Selected</h2>
+        <p className="text-sm mt-2 text-center">Please select a project from the sidebar to plan a sprint for it.</p>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       
@@ -73,11 +93,13 @@ export function AISprintPlanner() {
         </div>
         <div>
           <h2 className="text-2xl font-bold tracking-tight">AI Sprint Planner</h2>
-          <p className="text-muted-foreground text-sm mt-1">Automatically draft optimal sprint backlogs based on team capacity and priority.</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            Automatically draft optimal sprint backlogs for <span className="font-semibold text-foreground">{activeProject?.name}</span>.
+          </p>
         </div>
       </div>
 
-      {/* NEW: Instructional Banner */}
+      {/* Instructional Banner */}
       <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 flex items-start gap-3">
         <Info className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
         <p className="text-sm text-blue-700 dark:text-blue-400">
@@ -154,7 +176,7 @@ export function AISprintPlanner() {
                 </div>
                 <h3 className="text-lg font-medium text-foreground mb-1">Ready to Plan</h3>
                 <p className="text-sm text-muted-foreground max-w-sm">
-                    Enter your team's capacity and click generate. The AI will analyze the backlog to recommend an optimal workload.
+                    Enter your team's capacity and click generate. The AI will analyze the {activeProject?.name} backlog to recommend an optimal workload.
                 </p>
                 </div>
             )}
@@ -194,13 +216,13 @@ export function AISprintPlanner() {
                     </div>
                 </div>
 
-                {/* AI Rationale */}
+                {/* AI Rationale - Dynamic text generation based on selected project */}
                 <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
                     <h4 className="text-sm font-semibold text-primary flex items-center gap-2 mb-2">
                     <Sparkles className="w-4 h-4" /> AI Rationale
                     </h4>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                    Based on your {capacity}-point capacity limit, I prioritized resolving critical foundational features for Vaulrizz and OORLY. This selection maximizes value delivery while keeping the workload {capacity - totalAllocatedPoints} points under capacity to account for potential technical debt discovery.
+                    Based on your {capacity}-point capacity limit, I prioritized resolving critical foundational features for {activeProject?.name}. This selection maximizes value delivery while keeping the workload {capacity - totalAllocatedPoints} points under capacity to account for potential technical debt discovery.
                     </p>
                 </div>
 
@@ -213,14 +235,14 @@ export function AISprintPlanner() {
                     {sprintPlan.map(task => (
                         <div key={task.id} className="p-4 flex items-center justify-between hover:bg-muted/20 transition-colors">
                         <div className="flex items-center gap-3">
-                            <div className="w-6 h-6 rounded-md bg-muted text-xs font-medium border border-border flex items-center justify-center">
+                            <div className="w-6 h-6 rounded-md bg-muted text-xs font-medium border border-border flex items-center justify-center shrink-0">
                             {task.points}
                             </div>
                             <div>
                             <p className="text-sm font-medium">{task.title}</p>
                             <div className="flex items-center gap-2 mt-1">
                                 <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
-                                {task.project}
+                                {task.projectId}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground">•</span>
                                 <span className={`text-[10px] uppercase tracking-wider font-semibold ${
@@ -232,7 +254,7 @@ export function AISprintPlanner() {
                             </div>
                             </div>
                         </div>
-                        <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold border border-primary/20">
+                        <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold border border-primary/20 shrink-0">
                             {task.assignee}
                         </div>
                         </div>
@@ -251,6 +273,6 @@ export function AISprintPlanner() {
             )}
             </div>
     </div>  
-        </div>
-    )
+    </div>
+  )
 }

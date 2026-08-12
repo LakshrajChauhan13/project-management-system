@@ -1,6 +1,7 @@
 import React, { useState } from "react"
 import { Bot, Sparkles, Loader2, CheckCircle2, ListTodo, AlignLeft, AlertCircle, Copy, Pencil } from "lucide-react"
 import { useTaskStore } from "@/store/useTaskStore"
+import { useProjectStore } from "@/store/useProjectStore" // NEW IMPORT
 import { toast } from "sonner"
 
 // Mock AI response based on the PRD example
@@ -32,8 +33,9 @@ export function AIStoryGenerator() {
   const [editableResult, setEditableResult] = useState<typeof MOCK_AI_RESPONSE | null>(null)
   const [copied, setCopied] = useState(false)
   
-  // Unified store action
+  // Unified store actions
   const addMultipleTasks = useTaskStore((state) => state.addMultipleTasks)
+  const { currentProjectId } = useProjectStore() // Get the active project
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault()
@@ -60,15 +62,21 @@ export function AIStoryGenerator() {
   const handleSaveToBacklog = () => {
     if (!editableResult) return
 
-    // Convert the EDITED AI text tasks into proper Task objects
+    // SAFETY GUARD: Ensure a project is selected before saving tasks
+    if (!currentProjectId) {
+      toast.error("Please select a project from the sidebar first!")
+      return
+    }
+
+    // Convert the EDITED AI text tasks into proper Task objects mapped to the current project
     const newTasks = editableResult.tasks.map((taskTitle) => ({
       id: `TSK-${Math.floor(Math.random() * 9000) + 1000}`,
+      projectId: currentProjectId, // FIXED: Now strictly matches the Task interface
       title: taskTitle,
-      status: "Backlog", // Automatically targets the Kanban Backlog column
+      status: "Backlog",
       priority: editableResult.priority,
       points: Math.max(1, Math.floor(editableResult.storyPoints / editableResult.tasks.length)),
-      assignee: "Unassigned",
-      project: "New Feature" // You could also make this an editable dropdown!
+      assignee: "Unassigned"
     }))
 
     addMultipleTasks(newTasks)
