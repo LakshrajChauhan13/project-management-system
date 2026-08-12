@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useNavigate } from "react-router-dom"
 import { NavMain } from "@/components/nav-main"
-import { NavProjectExecution } from "@/components/nav-project-execution" // Our new component
+import { NavProjects } from "@/components/nav-projects" // RESTORED
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import {
@@ -17,13 +17,8 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar"
-import { 
-  Bot,
-  Sparkles,
-  LayoutDashboard,
-  Briefcase, 
-  FolderKanban
-} from "lucide-react"
+import { Sparkles, LayoutDashboard, Briefcase, FolderKanban } from "lucide-react"
+import { useProjectStore } from "@/store/useProjectStore"
 
 const data = {
   user: {
@@ -46,20 +41,12 @@ const data = {
         { title: "Reports", url: "/reports" },
       ],
     },
-    {
-      title: "AI Tools",
-      url: "/ai-tools",
-      icon: Bot,
-      items: [
-        { title: "AI Story Generator", url: "/ai-story" },
-        { title: "AI Sprint Planner", url: "/ai-sprint-planner" },
-      ],
-    },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navigate = useNavigate()
+  const { projects } = useProjectStore()
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -68,11 +55,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       
       <SidebarContent>
-        {/* Workspace & AI Tools */}
+        {/* Global Workspace Nav */}
         <NavMain items={data.navMain} />
         
-        {/* Dedicated Project Execution Group */}
-        <NavProjectExecution />
+        {/* Flat List of Projects */}
+        <NavProjects projects={projects} />
       </SidebarContent>
       
       <SidebarFooter>
