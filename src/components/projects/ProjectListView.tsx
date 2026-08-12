@@ -124,8 +124,8 @@ export function ProjectListView() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Projects</h2>
-          <p className="text-sm text-muted-foreground mt-1">All Projects</p>
+          <h2 className="text-2xl font-bold tracking-tight">Manage Projects</h2>
+          <p className="text-sm text-muted-foreground mt-1">The list of all the Projects that you have created so far.</p>
         </div>
         
         <div className="flex items-center gap-3 w-full sm:w-auto flex-wrap sm:flex-nowrap">

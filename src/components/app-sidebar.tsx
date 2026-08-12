@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useNavigate } from "react-router-dom"
 import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects" // RESTORED
+import { NavProjects } from "@/components/nav-projects"
 import { NavUser } from "@/components/nav-user"
 import { TeamSwitcher } from "@/components/team-switcher"
 import {
@@ -12,12 +12,8 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
-  SidebarGroup,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
 } from "@/components/ui/sidebar"
-import { Sparkles, LayoutDashboard, Briefcase, FolderKanban } from "lucide-react"
+import { Sparkles, LayoutDashboard, Briefcase } from "lucide-react"
 import { useProjectStore } from "@/store/useProjectStore"
 
 const data = {
@@ -45,7 +41,6 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const navigate = useNavigate()
   const { projects } = useProjectStore()
 
   return (
@@ -58,26 +53,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* Global Workspace Nav */}
         <NavMain items={data.navMain} />
         
-        {/* Flat List of Projects */}
+        {/* Collapsible Projects Group */}
         <NavProjects projects={projects} />
       </SidebarContent>
       
       <SidebarFooter>
-        {/* Standalone Manage Projects Link */}
-        <SidebarGroup className="p-0 mb-2">
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton 
-                onClick={() => navigate('/projects')}
-                className="cursor-pointer text-sidebar-foreground/80 font-medium hover:text-foreground"
-              >
-                <FolderKanban className="w-4 h-4" />
-                <span>Manage Projects</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-
+        {/* Removed the standalone Manage Projects link to match the new Jira-style IA */}
         <NavUser user={data.user} />
       </SidebarFooter>
       <SidebarRail />
