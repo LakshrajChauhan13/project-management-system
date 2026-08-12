@@ -3,12 +3,12 @@ import { persist } from 'zustand/middleware'
 
 export interface Task {
   id: string
+  projectId: string | null // NEW: Relational link to the project
   title: string
   status: string
   priority: string
   points: number
   assignee: string
-  project?: string
   description?: string
   acceptanceCriteria?: string[]
 }
@@ -16,6 +16,7 @@ export interface Task {
 const INITIAL_TASKS: Task[] = [
   { 
     id: "TSK-01", 
+    projectId: "PRJ-01", // Linked to our mock "OORLY" project
     title: "Design database schema", 
     status: "To Do", 
     priority: "High", 
@@ -37,7 +38,7 @@ interface TaskStore {
   updateTask: (taskId: string, updates: Partial<Task>) => void
   approveSprint: (taskIdsToApprove: string[]) => void
   deleteTask: (taskId: string) => void
-  deleteMultipleTasks: (taskIds: string[]) => void // NEW: Bulk delete action
+  deleteMultipleTasks: (taskIds: string[]) => void
 }
 
 export const useTaskStore = create<TaskStore>()(
@@ -77,7 +78,6 @@ export const useTaskStore = create<TaskStore>()(
           tasks: state.tasks.filter((task) => task.id !== taskId)
         })),
 
-      // NEW: Filter out all tasks whose IDs are in the array
       deleteMultipleTasks: (taskIds) =>
         set((state) => ({
           tasks: state.tasks.filter((task) => !taskIds.includes(task.id))
