@@ -12,6 +12,8 @@ import { AISprintPlanner } from "@/components/ai/AiSprintPlanner"
 import { BacklogView } from "@/components/kanban/BacklogView"
 import { SettingsView } from "@/components/settings/SettingsView"
 import { ProjectListView } from "@/components/projects/ProjectListView"
+import { CalendarView } from "./components/calendar/CalendarView"
+import { TeamView } from "./components/team/TeamView"
 
 function App() {
   useThemeManager()
@@ -35,9 +37,9 @@ function App() {
             {/* Contextual Tools */}
             <Route path="kanban" element={<KanbanBoard />} />
             <Route path="backlog" element={<BacklogView />} />
-            <Route path="calendar" element={<div className="p-8 text-center text-muted-foreground">Calendar View Coming Soon</div>} />
             <Route path="ai-sprint-planner" element={<AISprintPlanner />} />
             <Route path="ai-story-generator" element={<AIStoryGenerator />} />
+            <Route path="calendar" element={<CalendarView />} />
           </Route>
           
           <Route path="*" element={
