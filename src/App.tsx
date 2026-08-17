@@ -25,6 +25,7 @@ function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           
           {/* Global Routes */}
+          <Route path="team" element={<TeamView />} />
           <Route path="dashboard" element={<DashboardOverview />} />
           <Route path="settings" element={<SettingsView />} />
           <Route path="projects" element={<ProjectListView />} />
