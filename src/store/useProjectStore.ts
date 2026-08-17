@@ -43,7 +43,6 @@ export const useProjectStore = create<ProjectStore>()(
       deleteProject: (projectId) =>
         set((state) => ({
           projects: state.projects.filter((project) => project.id !== projectId),
-          // Crucial UI guard: Clear the active project if it was just deleted
           currentProjectId: state.currentProjectId === projectId ? null : state.currentProjectId
         })),
     }),

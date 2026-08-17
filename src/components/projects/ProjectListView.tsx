@@ -297,7 +297,7 @@ export function ProjectListView() {
       )}
 
       {/* --- DESTRUCTIVE DELETE CONFIRMATION --- */}
-      <AlertDialog open={!!projectToDelete} onOpenChange={(isOpen) => !isOpen && setProjectToDelete(null)}>
+      <AlertDialog open={!!projectToDelete} onOpenChange={(isOpen: boolean) => !isOpen && setProjectToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete '{projectToDelete?.name}'?</AlertDialogTitle>

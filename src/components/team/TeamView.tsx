@@ -12,7 +12,7 @@ import {
   MoreVertical, 
   Trash2, 
   X,
-  CircleDot // Added for the status toggle
+  CircleDot
 } from "lucide-react"
 import { toast } from "sonner"
 import { 
@@ -41,7 +41,6 @@ export function TeamView() {
   const [selectedRole, setSelectedRole] = useState<string>("All")
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
 
-  // Assuming MEM-101 is the currently logged-in user
   const loggedInUserId = 'MEM-101'
   const currentUser = members.find(m => m.id === loggedInUserId)
 
@@ -126,8 +125,9 @@ export function TeamView() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-300">
       
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-foreground">Team Management</h2>
@@ -137,34 +137,32 @@ export function TeamView() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* --- PERSONAL STATUS TOGGLE --- */}
           {currentUser && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-border bg-card hover:bg-muted transition-colors text-sm font-medium outline-none shadow-sm">
-                  <CircleDot className={`w-4 h-4 ${getStatusColor(currentUser.availability)}`} />
+                <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-background hover:bg-muted transition-colors text-sm font-medium outline-none shadow-sm">
+                  <CircleDot className={`w-3.5 h-3.5 ${getStatusColor(currentUser.availability)}`} />
                   {currentUser.availability}
                 </button>
               </DropdownMenuTrigger>
               
               <DropdownMenuContent align="end" className="w-40">
                 <DropdownMenuGroup>
-                <DropdownMenuLabel className="text-xs text-muted-foreground">My Status</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                
-                {AVAILABILITY_OPTIONS.map((status) => (
-                  <DropdownMenuItem 
-                    key={status} 
-                    onClick={() => {
-                      updateMemberAvailability(currentUser.id, status)
-                      toast.success(`Your status is now ${status}`)
-                    }}
-                    className="cursor-pointer text-sm flex items-center gap-2"
-                  >
-                    <CircleDot className={`w-3.5 h-3.5 ${getStatusColor(status)}`} />
-                    {status}
-                  </DropdownMenuItem>
-                ))}
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">My Status</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {AVAILABILITY_OPTIONS.map((status) => (
+                    <DropdownMenuItem 
+                      key={status} 
+                      onClick={() => {
+                        updateMemberAvailability(currentUser.id, status)
+                        toast.success(`Your status is now ${status}`)
+                      }}
+                      className="cursor-pointer text-sm flex items-center gap-2"
+                    >
+                      <CircleDot className={`w-3.5 h-3.5 ${getStatusColor(status)}`} />
+                      {status}
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -172,7 +170,7 @@ export function TeamView() {
 
           <button
             onClick={() => setIsInviteModalOpen(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
+            className="flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
           >
             <UserPlus className="w-4 h-4" />
             Invite Member
@@ -180,41 +178,35 @@ export function TeamView() {
         </div>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-5 bg-card border border-border rounded-xl shadow-sm flex items-center justify-between">
+      {/* Sleek Unified Metrics Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x border border-border rounded-xl bg-card shadow-sm">
+        <div className="p-5 flex items-center justify-between hover:bg-muted/20 transition-colors rounded-l-xl">
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Members</p>
             <p className="text-2xl font-bold text-foreground mt-1">{totalMembers}</p>
           </div>
-          <div className="p-3 bg-primary/10 rounded-xl">
-            <Users className="w-5 h-5 text-primary" />
-          </div>
+          <Users className="w-5 h-5 text-muted-foreground/50" />
         </div>
 
-        <div className="p-5 bg-card border border-border rounded-xl shadow-sm flex items-center justify-between">
+        <div className="p-5 flex items-center justify-between hover:bg-muted/20 transition-colors">
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Active & Available</p>
             <p className="text-2xl font-bold text-emerald-600 mt-1">{availableCount}</p>
           </div>
-          <div className="p-3 bg-emerald-500/10 rounded-xl">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-          </div>
+          <CheckCircle2 className="w-5 h-5 text-emerald-600/50" />
         </div>
 
-        <div className="p-5 bg-card border border-border rounded-xl shadow-sm flex items-center justify-between">
+        <div className="p-5 flex items-center justify-between hover:bg-muted/20 transition-colors rounded-r-xl">
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Avg Productivity</p>
             <p className="text-2xl font-bold text-foreground mt-1">{avgProductivity}%</p>
           </div>
-          <div className="p-3 bg-amber-500/10 rounded-xl">
-            <Zap className="w-5 h-5 text-amber-600" />
-          </div>
+          <Zap className="w-5 h-5 text-amber-500/50" />
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-card p-4 rounded-xl border border-border">
+      {/* Minimalist Search and Filters */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
           <input
@@ -222,7 +214,7 @@ export function TeamView() {
             placeholder="Search by name or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+            className="w-full pl-9 pr-3 py-2 bg-transparent border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-sm"
           />
         </div>
 
@@ -231,10 +223,10 @@ export function TeamView() {
             <button
               key={role}
               onClick={() => setSelectedRole(role)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors border ${
                 selectedRole === role
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-transparent text-muted-foreground border-border hover:text-foreground hover:bg-muted"
               }`}
             >
               {role}
@@ -243,17 +235,17 @@ export function TeamView() {
         </div>
       </div>
 
-      {/* Team Members Grid */}
+      {/* Team Members Grid - Lightened UI */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredMembers.map((member) => (
           <div
             key={member.id}
-            className="bg-card border border-border rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+            className="group bg-card border border-border/60 rounded-xl p-5 hover:border-primary/40 transition-all flex flex-col justify-between shadow-sm hover:shadow-md"
           >
             <div>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-sm shrink-0">
                     {member.avatar}
                   </div>
                   <div className="min-w-0">
@@ -268,7 +260,7 @@ export function TeamView() {
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={
-                      <button className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors outline-none" /> 
+                      <button className="p-1 rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-foreground hover:bg-muted transition-all outline-none" /> 
                     }
                   >
                     <MoreVertical className="w-4 h-4" />
@@ -292,24 +284,6 @@ export function TeamView() {
                     
                     <DropdownMenuSeparator />
                     
-                    {/* <DropdownMenuGroup>
-                      <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground">Change Availability</DropdownMenuLabel>
-                      {AVAILABILITY_OPTIONS.map((avail) => (
-                        <DropdownMenuItem
-                          key={avail}
-                          onClick={() => {
-                            updateMemberAvailability(member.id, avail)
-                            toast.success(`Updated ${member.name}'s status to ${avail}`)
-                          }}
-                          className="text-xs cursor-pointer"
-                        >
-                          {avail}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuGroup> */}
-                    
-                    {/* <DropdownMenuSeparator /> */}
-                    
                     <DropdownMenuItem
                       onClick={() => {
                         removeMember(member.id)
@@ -325,33 +299,35 @@ export function TeamView() {
               </div>
 
               <div className="flex items-center gap-2 mt-4">
-                <span className={`px-2.5 py-0.5 rounded-full border text-[11px] font-semibold tracking-wide ${getRoleBadge(member.role)}`}>
+                <span className={`px-2 py-0.5 rounded-md border text-[10px] font-semibold tracking-wide ${getRoleBadge(member.role)}`}>
                   {member.role}
                 </span>
-                <span className={`px-2.5 py-0.5 rounded-full border text-[11px] font-semibold tracking-wide ${getAvailabilityBadge(member.availability)}`}>
+                <span className={`px-2 py-0.5 rounded-md border text-[10px] font-semibold tracking-wide ${getAvailabilityBadge(member.availability)}`}>
                   {member.availability}
                 </span>
               </div>
 
-              <div className="mt-4 p-3 bg-muted/30 rounded-lg border border-border/50 text-xs">
-                <div className="flex items-center justify-between text-muted-foreground mb-1">
+              {/* Cleaned up Current Sprint Info */}
+              <div className="mt-5 space-y-1">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span className="flex items-center gap-1 font-medium">
                     <Clock className="w-3.5 h-3.5" /> Current Sprint
                   </span>
-                  <span className="font-semibold text-foreground">{member.tasksAssigned} Tasks</span>
+                  <span>{member.tasksAssigned} Tasks</span>
                 </div>
-                <p className="font-medium text-foreground truncate">{member.currentSprint}</p>
+                <p className="text-sm font-medium text-foreground truncate">{member.currentSprint}</p>
               </div>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-border">
-              <div className="flex items-center justify-between text-xs mb-1.5">
+            {/* Thinner Productivity Bar */}
+            <div className="mt-5 pt-4 border-t border-border/40">
+              <div className="flex items-center justify-between text-xs mb-2">
                 <span className="text-muted-foreground font-medium flex items-center gap-1">
                   <Zap className="w-3.5 h-3.5 text-amber-500" /> Productivity
                 </span>
                 <span className="font-bold text-foreground">{member.productivity}%</span>
               </div>
-              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
                   className="h-full bg-primary rounded-full transition-all duration-500"
                   style={{ width: `${member.productivity}%` }}
@@ -362,7 +338,7 @@ export function TeamView() {
         ))}
       </div>
 
-      {/* --- MODIFIED INVITE MEMBER MODAL --- */}
+      {/* --- INVITE MEMBER MODAL --- */}
       {isInviteModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm px-4"
@@ -440,7 +416,6 @@ export function TeamView() {
           </div>
         </div>
       )}
-
     </div>
   )
 }
