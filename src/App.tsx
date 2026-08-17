@@ -14,6 +14,7 @@ import { SettingsView } from "@/components/settings/SettingsView"
 import { ProjectListView } from "@/components/projects/ProjectListView"
 import { CalendarView } from "./components/calendar/CalendarView"
 import { TeamView } from "./components/team/TeamView"
+import { ReportsView } from "./components/reports/ReportsView"
 
 function App() {
   useThemeManager()
@@ -23,12 +24,13 @@ function App() {
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
-          
+
           {/* Global Routes */}
           <Route path="team" element={<TeamView />} />
           <Route path="dashboard" element={<DashboardOverview />} />
           <Route path="settings" element={<SettingsView />} />
           <Route path="projects" element={<ProjectListView />} />
+          <Route path="reports" element={<ReportsView />} />
           
           {/* Nested Project Context Routes */}
           <Route path="projects/:projectId" element={<ProjectLayout />}>

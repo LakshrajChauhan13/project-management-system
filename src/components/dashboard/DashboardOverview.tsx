@@ -1,5 +1,17 @@
+"use client"
+
 import React from "react"
-import { FolderKanban, Zap, CheckCircle2, Clock, Sparkles } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { 
+  FolderKanban, 
+  Zap, 
+  CheckCircle2, 
+  Clock, 
+  Sparkles,
+  Plus,
+  Users,
+  LayoutTemplate
+} from "lucide-react"
 import { 
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, LabelList 
 } from "recharts"
@@ -12,6 +24,10 @@ import {
   ChartLegend,
   ChartLegendContent
 } from "@/components/ui/chart"
+
+// Import our global Zustand stores for dynamic metrics
+import { useProjectStore } from "@/store/useProjectStore"
+import { useTaskStore } from "@/store/useTaskStore"
 
 const burndownData = [
   { day: "Mon", actual: 60, ideal: 60 },
@@ -83,13 +99,59 @@ function MetricCard({ title, value, icon: Icon, trend }: MetricCardProps) {
 }
 
 export function DashboardOverview() {
+  const navigate = useNavigate()
+
+  // Fetch real data from stores to wire up the metric cards
+  const { projects } = useProjectStore()
+  const { tasks } = useTaskStore()
+
+  // Calculate dynamic metrics
+  const totalProjects = projects.length
+  // Pending tasks are anything not Done or in Backlog
+  const pendingTasks = tasks.filter(t => t.status !== "Done" && t.status !== "Backlog").length
+  const completedTasks = tasks.filter(t => t.status === "Done").length
+  
+  // Note: Active sprints is mocked to 3 here as we don't have a dedicated Sprint store yet.
+  const activeSprints = 3 
+
   return (
     <div className="space-y-6">
+      
+      {/* Quick Actions Bar */}
+      {/* Minimalist Quick Actions Toolbar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <span className="text-sm font-medium text-muted-foreground hidden sm:inline-block">
+          Quick Actions
+        </span>
+        <div className="hidden sm:block w-px h-4 bg-border mx-1"></div>
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <button 
+            onClick={() => navigate('/projects')}
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border border-border bg-background shadow-sm hover:bg-muted hover:text-foreground h-8 px-3"
+          >
+            <Plus className="w-3.5 h-3.5 text-primary" /> Create Project
+          </button>
+          <button 
+            onClick={() => navigate('/projects')}
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border border-border bg-background shadow-sm hover:bg-muted hover:text-foreground h-8 px-3"
+          >
+            <LayoutTemplate className="w-3.5 h-3.5 text-blue-500" /> Create Sprint
+          </button>
+          <button 
+            onClick={() => navigate('/team')}
+            className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border border-border bg-background shadow-sm hover:bg-muted hover:text-foreground h-8 px-3"
+          >
+            <Users className="w-3.5 h-3.5 text-emerald-500" /> Invite Member
+          </button>
+        </div>
+      </div>
+
+      {/* Dynamic Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard title="Total Projects" value="12" icon={FolderKanban} trend="+2" />
-        <MetricCard title="Active Sprints" value="3" icon={Zap} trend="+1" />
-        <MetricCard title="Pending Tasks" value="24" icon={Clock} trend="-5" />
-        <MetricCard title="Completed Tasks" value="108" icon={CheckCircle2} trend="+12" />
+        <MetricCard title="Total Projects" value={totalProjects} icon={FolderKanban} trend="+2" />
+        <MetricCard title="Active Sprints" value={activeSprints} icon={Zap} trend="+1" />
+        <MetricCard title="Pending Tasks" value={pendingTasks} icon={Clock} trend="-5" />
+        <MetricCard title="Completed Tasks" value={completedTasks} icon={CheckCircle2} trend="+12" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -115,12 +177,11 @@ export function DashboardOverview() {
                 </defs>
                 
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }} />
                 
                 <ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
                 
-                {/* Fix: Removed nameKey to restore default text rendering next to the dots */}
                 <ChartLegend content={<ChartLegendContent />} />
                 
                 <Area 
@@ -144,7 +205,7 @@ export function DashboardOverview() {
                     dataKey="actual" 
                     position="top" 
                     offset={10} 
-                    fill="hsl(var(--foreground))" 
+                    fill="var(--color-foreground)" 
                     fontSize={12} 
                     fontWeight={600}
                   />
@@ -182,12 +243,11 @@ export function DashboardOverview() {
             <ChartContainer config={velocityConfig} className="h-[320px] w-full">
               <BarChart data={velocityData} margin={{ top: 25, right: 10, left: -20, bottom: 0 }} barGap={8}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                <XAxis dataKey="sprint" axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
+                <XAxis dataKey="sprint" axisLine={false} tickLine={false} tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }} />
                 
                 <ChartTooltip cursor={{ fill: "hsl(var(--muted)/0.3)" }} content={<ChartTooltipContent indicator="dot" />} />
                 
-                {/* Fix: Removed nameKey to restore default text rendering next to the dots */}
                 <ChartLegend content={<ChartLegendContent />} />
                 
                 <Bar dataKey="expected" fill="var(--color-expected)" radius={[4, 4, 0, 0]} opacity={0.7}>
@@ -195,7 +255,7 @@ export function DashboardOverview() {
                     dataKey="expected" 
                     position="top" 
                     offset={8} 
-                    fill="hsl(var(--muted-foreground))" 
+                    fill="var(--color-muted-foreground)" 
                     fontSize={12} 
                   />
                 </Bar>
@@ -205,7 +265,7 @@ export function DashboardOverview() {
                     dataKey="completed" 
                     position="top" 
                     offset={8} 
-                    fill="hsl(var(--foreground))" 
+                    fill="var(--color-foreground)" 
                     fontSize={12} 
                     fontWeight={600}
                   />
