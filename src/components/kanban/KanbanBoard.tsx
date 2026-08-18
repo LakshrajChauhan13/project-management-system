@@ -18,14 +18,11 @@ import { useParams } from "react-router-dom"
 const INITIAL_COLUMNS = ["To Do", "In Progress", "Code Review", "Testing", "Done"]
 
 export function KanbanBoard() {
-  // NEW: Updated to use currentProjectId from our refactored store
-  const { projectId } = useParams<{ projectId: string }>() // Extract ID from the URL
+  const { projectId } = useParams<{ projectId: string }>()
   const { currentProjectId, setCurrentProjectId } = useProjectStore() 
   
-  // FIXED: Destructuring directly prevents the implicit 'any' type error on 'state'
   const { tasks, addTask, updateTaskStatus, updateTask, deleteTask, deleteMultipleTasks } = useTaskStore()
   
-  // Filter tasks scoped to the globally selected project
   const projectTasks = tasks.filter(task => task.projectId === currentProjectId)
 
   const [columns, setColumns] = useState(INITIAL_COLUMNS)
@@ -38,7 +35,7 @@ export function KanbanBoard() {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create')
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   
-  const defaultTask: Partial<Task> = { title: "", description: "", acceptanceCriteria: [], priority: "Medium", points: 1, assignee: "LC", status: "To Do" }
+  const defaultTask: Partial<Task> = { title: "", description: "", acceptanceCriteria: [], priority: "Medium", points: 1, assignee: "UN", status: "To Do" }
   const [formData, setFormData] = useState<Partial<Task>>(defaultTask)
 
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null)
@@ -83,7 +80,7 @@ export function KanbanBoard() {
       addTask({ 
         ...formData, 
         id: `TSK-${Math.floor(Math.random() * 900) + 100}`,
-        projectId: currentProjectId // Inject the active project ID on creation
+        projectId: currentProjectId 
       } as Task)
       toast.success("Task created successfully.")
     } else if (modalMode === 'edit' && editingTaskId) {
@@ -131,7 +128,6 @@ export function KanbanBoard() {
     else setSelectedForBulk(selectedForBulk.filter(id => id !== taskId))
   }
 
-  // Guard clause if no project is selected
   if (!currentProjectId) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-12rem)] text-muted-foreground border border-dashed border-border rounded-xl p-12">
@@ -233,7 +229,19 @@ export function KanbanBoard() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="flex items-center justify-center w-6 h-6 rounded-md bg-muted text-xs font-medium border border-border">{task.points}</span>
-                          <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold border border-primary/20">{task.assignee}</div>
+                          
+                          {/* --- DYNAMIC UNASSIGNED PILL --- */}
+                          <div 
+                            className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-colors ${
+                              task.assignee === "UN" 
+                                ? "bg-primary/10 text-foreground border-2 border-dotted border-border" 
+                                : "bg-primary/10 text-primary border border-primary/20"
+                            }`}
+                            title={task.assignee === "UN" ? "Unassigned" : `Assigned to ${task.assignee}`}
+                          >
+                            {task.assignee}
+                          </div>
+
                         </div>
                       </div>
                     </div>
@@ -322,7 +330,7 @@ export function KanbanBoard() {
                   
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assignee <span className="text-red-500">*</span></label>
-                    <input type="text" required value={formData.assignee || ""} onChange={(e) => setFormData({...formData, assignee: e.target.value})} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"/>
+                    <input type="text" required value={formData.assignee || ""} onChange={(e) => setFormData({...formData, assignee: e.target.value})} className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" placeholder="e.g., LC or UN"/>
                   </div>
                   
                   <div className="space-y-2">
@@ -360,7 +368,7 @@ export function KanbanBoard() {
         </div>
       )}
 
-      <AlertDialog open={!!taskToDelete} onOpenChange={(isOpen) => !isOpen && setTaskToDelete(null)}>
+      <AlertDialog open={!!taskToDelete} onOpenChange={(isOpen: boolean) => !isOpen && setTaskToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>

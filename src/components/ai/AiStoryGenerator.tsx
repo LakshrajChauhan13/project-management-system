@@ -76,7 +76,7 @@ export function AIStoryGenerator() {
       status: "Backlog",
       priority: editableResult.priority,
       points: Math.max(1, Math.floor(editableResult.storyPoints / editableResult.tasks.length)),
-      assignee: "Unassigned"
+      assignee: "UN"
     }))
 
     addMultipleTasks(newTasks)
