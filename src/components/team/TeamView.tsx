@@ -139,7 +139,7 @@ export function TeamView() {
         <div className="flex items-center gap-3">
           {currentUser && (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger>
                 <button className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-background hover:bg-muted transition-colors text-sm font-medium outline-none shadow-sm">
                   <CircleDot className={`w-3.5 h-3.5 ${getStatusColor(currentUser.availability)}`} />
                   {currentUser.availability}

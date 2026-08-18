@@ -41,7 +41,7 @@ export function UserStatusMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger>
         <button className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-card hover:bg-muted transition-colors text-sm font-medium outline-none">
           <CircleDot className={`w-3.5 h-3.5 ${getStatusColor(currentUser.availability)}`} />
           {currentUser.availability}
