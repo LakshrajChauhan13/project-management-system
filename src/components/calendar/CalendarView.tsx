@@ -172,10 +172,10 @@ export function CalendarView() {
     // Wrap the pill inside the Shadcn Tooltip components
     return (
       <Tooltip key={event.id}>
-        <TooltipTrigger asChild>
+        <TooltipTrigger>
           {pillContent}
         </TooltipTrigger>
-        <TooltipContent side="top" align="center" className="text-xs">
+        <TooltipContent side="top" align="center" className="text-xs text-shadow-2xs ">
           <p>{getTooltipText(event)}</p>
         </TooltipContent>
       </Tooltip>
@@ -189,7 +189,7 @@ export function CalendarView() {
 
   return (
     // 3. Wrap the main component in TooltipProvider
-    <TooltipProvider delayDuration={200}>
+    <TooltipProvider>
       <div className="relative flex flex-col h-full bg-background rounded-xl border border-border shadow-sm overflow-hidden">
         
         {/* Calendar Header with Filter Dropdown */}

@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState, useEffect } from "react"
 import { Plus, MoreHorizontal, AlignLeft, X, Trash2, CheckSquare, Target, AlertCircle, Briefcase } from "lucide-react"
 import { toast } from "sonner"
@@ -170,8 +172,9 @@ export function KanbanBoard() {
             <div 
               key={column} 
               onDragOver={(e) => handleDragOver(e, column)} onDragLeave={handleDragLeave} onDrop={(e) => handleDrop(e, column)}
+              // REMOVED scale-[1.01] to prevent collision on drag
               className={`flex flex-col min-w-[280px] md:min-w-[320px] w-[280px] md:w-[320px] max-h-full rounded-xl border shrink-0 snap-center sm:snap-start transition-all duration-200 ${
-                isDragActive ? "bg-primary/10 border-primary border-dashed shadow-inner ring-2 ring-primary/20 scale-[1.01]" : "bg-muted/30 border-border"
+                isDragActive ? "bg-primary/10 border-primary border-dashed shadow-inner ring-2 ring-primary/20 " : "bg-muted/30 border-border"
               }`}
             >
               <div className="p-4 flex items-center justify-between border-b border-border/50 shrink-0 relative">
@@ -185,8 +188,18 @@ export function KanbanBoard() {
                 {activeDropdown === column && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setActiveDropdown(null)} />
-                    <div className="absolute right-4 top-12 mt-1 w-40 bg-card border border-border shadow-lg rounded-lg z-20 py-1 animate-in fade-in zoom-in-95 duration-100">
-                      <button onClick={() => { setColumns(columns.filter(col => col !== column)); setActiveDropdown(null); }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors">
+                    <div className="absolute right-4 top-12 mt-1 w-48 bg-card border border-border shadow-lg rounded-lg z-20 py-1 animate-in fade-in zoom-in-95 duration-100">
+                      {/* ADDED: Add Task button in the 3-dot menu */}
+                      <button 
+                        onClick={() => { openCreateModal(column); setActiveDropdown(null); }} 
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                      >
+                        <Plus className="w-4 h-4" /> Add Task
+                      </button>
+                      <button 
+                        onClick={() => { setColumns(columns.filter(col => col !== column)); setActiveDropdown(null); }} 
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors"
+                      >
                         <Trash2 className="w-4 h-4" /> Delete Column
                       </button>
                     </div>
@@ -230,7 +243,6 @@ export function KanbanBoard() {
                         <div className="flex items-center gap-2">
                           <span className="flex items-center justify-center w-6 h-6 rounded-md bg-muted text-xs font-medium border border-border">{task.points}</span>
                           
-                          {/* --- DYNAMIC UNASSIGNED PILL --- */}
                           <div 
                             className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 transition-colors ${
                               task.assignee === "UN" 
@@ -292,7 +304,7 @@ export function KanbanBoard() {
               <div className="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar border-r border-border">
                 <div className="space-y-2">
                   <label className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">Task Title <span className="text-red-500">*</span></label>
-                  <input type="text" required placeholder="e.g., Define user roles logic" value={formData.title || ""} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 text-lg font-semibold bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"/>
+                  <input type="text" required placeholder="e.g., Define user roles logic" value={formData.title || ""} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 text-base bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:font-light"/>
                 </div>
 
                 <div className="space-y-2">

@@ -125,12 +125,7 @@
     --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* --- Minimal floating scrollbar, Gemini-sidebar style --- */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--muted-foreground) / 0.25) transparent;
-}
-
+/* Custom Muted Dark Scrollbars */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -141,28 +136,18 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--muted-foreground) / 0.25);
-  border-radius: 100px;
-  border: none; /* no need for the padding trick at 6px width */
+  background-color: rgba(156, 163, 175, 0.25); /* Subtle dark gray */
+  border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: hsl(var(--muted-foreground) / 0.5);
+  background-color: rgba(156, 163, 175, 0.45); /* Slightly lighter on hover */
 }
 
-.custom-scrollbar::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-/* Optional: keep the track invisible until the user actually hovers
-   the scrollable area — this is the real "Gemini" touch, where the
-   thumb only appears on interaction instead of sitting there always */
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: transparent;
-}
-
-.custom-scrollbar:hover::-webkit-scrollbar-thumb {
-  background-color: hsl(var(--muted-foreground) / 0.25);
+/* Fallback for Firefox */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.25) transparent;
 }
 
 @layer base {
