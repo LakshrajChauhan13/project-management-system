@@ -31,7 +31,8 @@ function App() {
           <Route path="settings" element={<SettingsView />} />
           <Route path="projects" element={<ProjectListView />} />
           <Route path="reports" element={<ReportsView />} />
-          
+          <Route path="calendar" element={<CalendarView />} />
+
           {/* Nested Project Context Routes */}
           <Route path="projects/:projectId" element={<ProjectLayout />}>
             {/* Redirect root project ID to Kanban automatically */}

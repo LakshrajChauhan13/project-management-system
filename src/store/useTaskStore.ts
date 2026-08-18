@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware'
 export interface Task {
   id: string
   projectId: string | null // NEW: Relational link to the project
+  sprintId?: string
   title: string
   status: string
   priority: string

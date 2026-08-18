@@ -39,7 +39,6 @@ export function ProjectLayout() {
   const tabs = [
     { name: 'Kanban Board', path: 'kanban' },
     { name: 'Product Backlog', path: 'backlog' },
-    { name: 'Calendar', path: 'calendar' },
     { name: 'AI Sprint Planner', path: 'ai-sprint-planner' },
     { name: 'AI Story Generator', path: 'ai-story-generator' },
   ]

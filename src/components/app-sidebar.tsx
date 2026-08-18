@@ -36,6 +36,7 @@ const data = {
         { title: "Dashboard", url: "/dashboard" },
         { title: "Reports", url: "/reports" },
         { title: "Team", url: "/team" },
+        { title: "Calendar", url: "/calendar" }, // <-- ADDED THIS LINE
       ],
     },
   ],
