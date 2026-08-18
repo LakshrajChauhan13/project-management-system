@@ -15,6 +15,10 @@ import { ProjectListView } from "@/components/projects/ProjectListView"
 import { CalendarView } from "./components/calendar/CalendarView"
 import { TeamView } from "./components/team/TeamView"
 import { ReportsView } from "./components/reports/ReportsView"
+import { LoginForm } from "./components/login-form"
+import { SignupPage } from "./components/auth/SignupPage"
+import { LoginPage } from "./components/auth/LoginPage"
+import { ProtectedRoute } from "./components/auth/ProtectedRoute"
 
 function App() {
   useThemeManager()
@@ -22,36 +26,41 @@ function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
 
-          {/* Global Routes */}
-          <Route path="team" element={<TeamView />} />
-          <Route path="dashboard" element={<DashboardOverview />} />
-          <Route path="settings" element={<SettingsView />} />
-          <Route path="projects" element={<ProjectListView />} />
-          <Route path="reports" element={<ReportsView />} />
-          <Route path="calendar" element={<CalendarView />} />
+        {/* <Route element={<ProtectedRoute />}> */}
+          <Route path="/" element={<MainLayout />}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
 
-          {/* Nested Project Context Routes */}
-          <Route path="projects/:projectId" element={<ProjectLayout />}>
-            {/* Redirect root project ID to Kanban automatically */}
-            <Route index element={<Navigate to="kanban" replace />} />
-            
-            {/* Contextual Tools */}
-            <Route path="kanban" element={<KanbanBoard />} />
-            <Route path="backlog" element={<BacklogView />} />
-            <Route path="ai-sprint-planner" element={<AISprintPlanner />} />
-            <Route path="ai-story-generator" element={<AIStoryGenerator />} />
+            {/* Global Routes */}
+            <Route path="team" element={<TeamView />} />
+            <Route path="dashboard" element={<DashboardOverview />} />
+            <Route path="settings" element={<SettingsView />} />
+            <Route path="projects" element={<ProjectListView />} />
+            <Route path="reports" element={<ReportsView />} />
             <Route path="calendar" element={<CalendarView />} />
+
+            {/* Nested Project Context Routes */}
+            <Route path="projects/:projectId" element={<ProjectLayout />}>
+              {/* Redirect root project ID to Kanban automatically */}
+              <Route index element={<Navigate to="kanban" replace />} />
+              
+              {/* Contextual Tools */}
+              <Route path="kanban" element={<KanbanBoard />} />
+              <Route path="backlog" element={<BacklogView />} />
+              <Route path="ai-sprint-planner" element={<AISprintPlanner />} />
+              <Route path="ai-story-generator" element={<AIStoryGenerator />} />
+              <Route path="calendar" element={<CalendarView />} />
+            </Route>
+            
+            <Route path="*" element={
+              <div className="h-[500px] rounded-xl border border-dashed border-border flex items-center justify-center bg-muted/30">
+                <p className="text-muted-foreground text-sm">Module under construction.</p>
+              </div>
+            } />
           </Route>
-          
-          <Route path="*" element={
-            <div className="h-[500px] rounded-xl border border-dashed border-border flex items-center justify-center bg-muted/30">
-              <p className="text-muted-foreground text-sm">Module under construction.</p>
-            </div>
-          } />
-        </Route>
+        {/* </Route> */}
       </Routes>
     </Router>
   )
